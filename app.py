@@ -508,6 +508,3 @@ The simulator uses Monte Carlo
 analysis to estimate possible
 future outcomes.
 """)
-    except Exception as e:
-
-        st.error(e)
