@@ -370,3 +370,5 @@ Kurtosis: {kurtosis(returns):.2f}
             fig,
             use_container_width=True
         )
+    except Exception as e:
+        st.error(e)
