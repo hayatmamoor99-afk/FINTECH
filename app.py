@@ -371,5 +371,6 @@ Kurtosis: {kurtosis(returns):.2f}
             use_container_width=True
         )
 
-except Exception as e:
-    st.error(e)
+    except Exception as e:
+
+        st.error(e)
