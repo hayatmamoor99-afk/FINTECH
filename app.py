@@ -498,6 +498,16 @@ st.plotly_chart(
     sim_fig,
     use_container_width=True
 )
+st.sidebar.header("💡 Investment Simulator")
+
+st.sidebar.markdown("""
+Enter any amount and choose
+a future investment horizon.
+
+The simulator uses Monte Carlo
+analysis to estimate possible
+future outcomes.
+""")
     except Exception as e:
 
         st.error(e)
