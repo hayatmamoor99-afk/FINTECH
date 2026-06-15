@@ -1,1 +1,9 @@
-
+streamlit 
+yfinance 
+plotly.graph_objects
+plotly.express
+pandas 
+numpy
+from datetime import datetime, timedelta
+anthropic
+os
