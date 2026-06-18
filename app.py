@@ -165,135 +165,50 @@ if ticker:
             use_container_width=True
         )
 
-# ==========================================
-# BEAUTIFUL HISTOGRAM ANALYSIS
-# ==========================================
+ # --------------------
+        # HISTOGRAMS
+        # --------------------
 
-st.header("📊 Return Distribution Intelligence")
+        st.header("📊 Return Histograms")
 
-years = [1, 2, 3, 4, 5]
+        cols = st.columns(2)
 
-for year in years:
+        years = [1,2,3,4,5]
 
-    st.markdown("---")
+        for i, year in enumerate(years):
 
-    st.subheader(f"📈 {year}-Year Return Analysis")
+            hist = stock.history(
+                period=f"{year}y"
+            )
 
-    hist = stock.history(period=f"{year}y")
+            returns = (
+                hist["Close"]
+                .pct_change()
+                .dropna()
+            )
 
-    returns = (
-        hist["Close"]
-        .pct_change()
-        .dropna()
-    )
+            fig = px.histogram(
+                returns,
+                nbins=50,
+                title=f"{year} Year Return Distribution"
+            )
 
-    # -----------------------------
-    # STATISTICS
-    # -----------------------------
+            cols[i % 2].plotly_chart(
+                fig,
+                use_container_width=True
+            )
 
-    mean_return = returns.mean() * 100
-    std_return = returns.std() * 100
-    skew_value = skew(returns)
-    kurt_value = kurtosis(returns)
+            cols[i % 2].write(
+                f"""
+Mean: {returns.mean():.4f}
 
- def show_histograms(stock):
+Std Dev: {returns.std():.4f}
 
-    st.header(
-        "📊 Return Distribution Intelligence"
-    )
+Skewness: {skew(returns):.2f}
 
-    years = [1, 2, 3, 4, 5]
-
-    for year in years:
-
-        hist = stock.history(
-            period=f"{year}y"
-        )
-
-        returns = (
-            hist["Close"]
-            .pct_change()
-            .dropna()
-        )
-
-        mean_return = (
-            returns.mean() * 100
-        )
-
-        std_return = (
-            returns.std() * 100
-        )
-
-        skew_value = skew(
-            returns
-        )
-
-        kurt_value = kurtosis(
-            returns
-        )
-
-        st.markdown("---")
-
-        st.subheader(
-            f"📈 {year}-Year Analysis"
-        )
-
-        fig = px.histogram(
-            returns * 100,
-            nbins=40,
-            marginal="box",
-            title=f"{year}-Year Return Distribution"
-        )
-
-        fig.update_layout(
-            template="plotly_dark",
-            height=500
-        )
-
-        st.plotly_chart(
-            fig,
-            use_container_width=True
-        )
-
-        c1, c2, c3, c4 = st.columns(4)
-
-        c1.metric(
-            "Average Return",
-            f"{mean_return:.2f}%"
-        )
-
-        c2.metric(
-            "Volatility",
-            f"{std_return:.2f}%"
-        )
-
-        c3.metric(
-            "Skewness",
-            f"{skew_value:.2f}"
-        )
-
-        c4.metric(
-            "Kurtosis",
-            f"{kurt_value:.2f}"
-        )
-
-        st.info(
-            f"""
-### 🤖 Human Explanation
-
-Average Return:
-{mean_return:.2f}%
-
-Volatility:
-{'Low' if std_return < 1 else 'Moderate' if std_return < 3 else 'High'}
-
-Skewness:
-{'More upside surprises' if skew_value > 0 else 'More downside surprises'}
-
-Kurtosis:
-{'Occasional extreme events detected' if kurt_value > 3 else 'Generally predictable behavior'}
+Kurtosis: {kurtosis(returns):.2f}
 """
-        )
+            )
 
         # --------------------
         # BUY / SELL ENGINE
