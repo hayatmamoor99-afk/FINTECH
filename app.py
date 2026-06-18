@@ -196,178 +196,104 @@ for year in years:
     skew_value = skew(returns)
     kurt_value = kurtosis(returns)
 
-    # -----------------------------
-    # BEAUTIFUL HISTOGRAM
-    # -----------------------------
+ def show_histograms(stock):
 
-    fig = px.histogram(
-        returns * 100,
-        nbins=50,
-        title=f"{year}-Year Daily Return Distribution",
-        labels={
-            "value": "Daily Return (%)",
-            "count": "Frequency"
-        },
-        marginal="box"
+    st.header(
+        "📊 Return Distribution Intelligence"
     )
 
-    fig.update_layout(
-        height=500,
-        template="plotly_dark",
-        title_x=0.5,
-        font=dict(size=14)
-    )
+    years = [1, 2, 3, 4, 5]
 
-    fig.add_vline(
-        x=mean_return,
-        line_dash="dash",
-        line_width=3,
-    )
+    for year in years:
 
-    st.plotly_chart(
-        fig,
-        use_container_width=True
-    )
+        hist = stock.history(
+            period=f"{year}y"
+        )
 
-    # -----------------------------
-    # HUMANIZED METRICS
-    # -----------------------------
+        returns = (
+            hist["Close"]
+            .pct_change()
+            .dropna()
+        )
 
-    col1, col2 = st.columns(2)
+        mean_return = (
+            returns.mean() * 100
+        )
 
-    with col1:
+        std_return = (
+            returns.std() * 100
+        )
 
-        st.success(
+        skew_value = skew(
+            returns
+        )
+
+        kurt_value = kurtosis(
+            returns
+        )
+
+        st.markdown("---")
+
+        st.subheader(
+            f"📈 {year}-Year Analysis"
+        )
+
+        fig = px.histogram(
+            returns * 100,
+            nbins=40,
+            marginal="box",
+            title=f"{year}-Year Return Distribution"
+        )
+
+        fig.update_layout(
+            template="plotly_dark",
+            height=500
+        )
+
+        st.plotly_chart(
+            fig,
+            use_container_width=True
+        )
+
+        c1, c2, c3, c4 = st.columns(4)
+
+        c1.metric(
+            "Average Return",
+            f"{mean_return:.2f}%"
+        )
+
+        c2.metric(
+            "Volatility",
+            f"{std_return:.2f}%"
+        )
+
+        c3.metric(
+            "Skewness",
+            f"{skew_value:.2f}"
+        )
+
+        c4.metric(
+            "Kurtosis",
+            f"{kurt_value:.2f}"
+        )
+
+        st.info(
             f"""
-🟢 Average Daily Return
+### 🤖 Human Explanation
 
+Average Return:
 {mean_return:.2f}%
 
-Meaning:
-On average this stock moved
-{mean_return:.2f}% per day.
+Volatility:
+{'Low' if std_return < 1 else 'Moderate' if std_return < 3 else 'High'}
+
+Skewness:
+{'More upside surprises' if skew_value > 0 else 'More downside surprises'}
+
+Kurtosis:
+{'Occasional extreme events detected' if kurt_value > 3 else 'Generally predictable behavior'}
 """
         )
-
-        risk_text = ""
-
-        if std_return < 1:
-            risk_text = "🟢 Low Volatility"
-
-        elif std_return < 3:
-            risk_text = "🟡 Moderate Volatility"
-
-        else:
-            risk_text = "🔴 High Volatility"
-
-        st.warning(
-            f"""
-{risk_text}
-
-Standard Deviation:
-{std_return:.2f}%
-
-Meaning:
-This indicates how much
-the stock's returns fluctuate.
-"""
-        )
-
-    with col2:
-
-        if skew_value > 0:
-
-            skew_text = """
-🟢 Positive Skew
-
-Historically this stock has
-experienced larger positive
-surprises than negative ones.
-"""
-
-        elif skew_value < 0:
-
-            skew_text = """
-🔴 Negative Skew
-
-Historically this stock has
-experienced larger downside
-surprises.
-"""
-
-        else:
-
-            skew_text = """
-⚪ Neutral Skew
-
-Returns are fairly balanced.
-"""
-
-        st.info(skew_text)
-
-        if kurt_value > 3:
-
-            kurt_text = """
-🔴 High Kurtosis
-
-Most days are normal but
-occasional extreme movements
-have occurred.
-"""
-
-        else:
-
-            kurt_text = """
-🟢 Normal Kurtosis
-
-Price movements are generally
-more predictable.
-"""
-
-        st.error(kurt_text)
-
-    # -----------------------------
-    # AI SUMMARY
-    # -----------------------------
-
-    if (
-        mean_return > 0
-        and std_return < 3
-        and skew_value > 0
-    ):
-
-        summary = """
-🤖 AI Analysis
-
-This stock shows healthy historical
-returns, manageable volatility and
-favorable upside characteristics.
-
-Suitable for investors seeking
-growth with moderate risk.
-"""
-
-    elif mean_return > 0:
-
-        summary = """
-🤖 AI Analysis
-
-The stock has generated positive
-returns historically but investors
-should monitor volatility closely.
-"""
-
-    else:
-
-        summary = """
-🤖 AI Analysis
-
-Historical performance has been
-weak and risk-adjusted returns
-appear less attractive.
-"""
-
-    st.info(summary)
 
         # --------------------
         # BUY / SELL ENGINE
