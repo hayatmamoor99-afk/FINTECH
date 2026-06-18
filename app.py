@@ -170,44 +170,49 @@ if ticker:
         # --------------------
 st.header("📊 Return Histograms")
 
-        cols = st.columns(2)
+cols = st.columns(2)
 
-        years = [1,2,3,4,5]
+years = [1, 2, 3, 4, 5]
 
-        for i, year in enumerate(years):
+for i, year in enumerate(years):
 
-            hist = stock.history(
-                period=f"{year}y"
-            )
+    hist = stock.history(period=f"{year}y")
 
-            returns = (
-                hist["Close"]
-                .pct_change()
-                .dropna()
-            )
+    returns = (
+        hist["Close"]
+        .pct_change()
+        .replace([np.inf, -np.inf], np.nan)
+        .dropna()
+    )
 
-            fig = px.histogram(
-                returns,
-                nbins=50,
-                title=f"{year} Year Return Distribution"
-            )
+    if len(returns) == 0:
+        cols[i % 2].warning(
+            f"No return data for {year} year period."
+        )
+        continue
 
-            cols[i % 2].plotly_chart(
-                fig,
-                use_container_width=True
-            )
+    fig = px.histogram(
+        x=returns,
+        nbins=50,
+        title=f"{year} Year Return Distribution"
+    )
 
-            cols[i % 2].write(
-                f"""
-Mean: {returns.mean():.4f}
+    cols[i % 2].plotly_chart(
+        fig,
+        use_container_width=True
+    )
 
-Std Dev: {returns.std():.4f}
+    cols[i % 2].write(
+        f"""
+**Mean:** {returns.mean():.4f}
 
-Skewness: {skew(returns):.2f}
+**Std Dev:** {returns.std():.4f}
 
-Kurtosis: {kurtosis(returns):.2f}
+**Skewness:** {skew(returns):.2f}
+
+**Kurtosis:** {kurtosis(returns):.2f}
 """
-            )
+    )
 
         # --------------------
         # BUY / SELL ENGINE
