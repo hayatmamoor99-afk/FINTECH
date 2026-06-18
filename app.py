@@ -168,8 +168,7 @@ if ticker:
         # --------------------
         # HISTOGRAMS
         # --------------------
-
-        st.header("📊 Return Histograms")
+st.header("📊 Return Histograms")
 
         cols = st.columns(2)
 
