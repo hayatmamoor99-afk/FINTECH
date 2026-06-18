@@ -107,10 +107,10 @@ def make_histogram(values, title, color, x_as_percent=False):
 # HEADER
 # ============================================================
 
-st.title("🚀 FinSight AI")
+st.title("FinSight AI")
 st.subheader("Advanced Stock Analysis Platform")
 st.caption(
-    "⚠️ Educational tool only, not financial advice. Every chart below is based on "
+    " Disclaimer: Educational tool only, not financial advice. Every chart below is based on "
     "historical data and statistical assumptions, neither of which guarantee future results."
 )
 
@@ -168,7 +168,7 @@ def get_watchlist_performance(tickers):
 if "selected_ticker" not in st.session_state:
     st.session_state.selected_ticker = None
 
-st.header("🏆 Top Performing Stocks")
+st.header("Top Performing Stocks")
 explain(
     "This ranks a curated watchlist of well-known, heavily-traded large-cap stocks by their "
     "actual 1-year price return. It's not a scan of the entire market, just a quick-start list. "
@@ -279,7 +279,7 @@ try:
     # INVESTMENT RETURNS
     # --------------------
 
-    st.header("💰 Investment Growth")
+    st.header("Investment Growth")
 
     periods_years = [1, 2, 3, 4, 5]
     growth_rows = []
@@ -315,7 +315,7 @@ try:
     # HISTOGRAMS
     # --------------------
 
-    st.header("📊 Return Histograms")
+    st.header("Return Histograms")
 
     explain(
         "Each chart shows how daily returns were distributed over that time window. A tall bar near "
@@ -357,7 +357,7 @@ try:
     # BUY / SELL ENGINE
     # --------------------
 
-    st.header("🧠 AI Probability Engine")
+    st.header("AI Probability Engine")
 
     returns_full = data["Close"].pct_change().dropna()
 
@@ -401,7 +401,7 @@ try:
     # MONTE CARLO
     # --------------------
 
-    st.header("🔮 Monte Carlo Forecast")
+    st.header("Monte Carlo Forecast")
 
     simulations = 1000
     days = 252
