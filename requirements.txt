@@ -1,7 +1,8 @@
 streamlit
 yfinance
+plotly
 pandas
 numpy
-plotly
-scipy
-scikit-learn
+anthropic
+requests
+feedparser
