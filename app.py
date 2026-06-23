@@ -223,11 +223,16 @@ if symbol:
             """, unsafe_allow_html=True)
         
         with col2:
+            # FIXED: Handle None case properly
+            if current_price is not None:
+                price_display = f"${current_price:.2f}"
+            else:
+                price_display = "N/A"
             st.markdown(f"""
             <div class='card'>
                 <h4 style='color: #1a237e;'>💰 Current Price</h4>
                 <p style='font-size: 1.5rem; font-weight: 700; color: #1a237e;'>
-                    ${current_price:.2f if current_price else 'N/A'}
+                    {price_display}
                 </p>
             </div>
             """, unsafe_allow_html=True)
@@ -242,11 +247,16 @@ if symbol:
             """, unsafe_allow_html=True)
         
         with col4:
+            # FIXED: Handle market_cap display properly
+            if isinstance(market_cap, (int, float)):
+                market_cap_display = f"${market_cap:,.0f}"
+            else:
+                market_cap_display = "N/A"
             st.markdown(f"""
             <div class='card'>
                 <h4 style='color: #1a237e;'>📊 Market Cap</h4>
                 <p style='font-size: 1rem; font-weight: 500;'>
-                    {f'${market_cap:,.0f}' if isinstance(market_cap, (int, float)) else 'N/A'}
+                    {market_cap_display}
                 </p>
             </div>
             """, unsafe_allow_html=True)
@@ -397,7 +407,10 @@ if symbol:
                 sma_200 = five_year_data['Close'].rolling(window=200).mean().iloc[-1]
                 
                 # Calculate momentum
-                momentum = (five_year_data['Close'].iloc[-1] - five_year_data['Close'].iloc[-30]) / five_year_data['Close'].iloc[-30] * 100
+                if len(five_year_data) > 30:
+                    momentum = (five_year_data['Close'].iloc[-1] - five_year_data['Close'].iloc[-30]) / five_year_data['Close'].iloc[-30] * 100
+                else:
+                    momentum = 0
                 
                 # Recommendation logic based on multiple factors
                 buy_score = 0
