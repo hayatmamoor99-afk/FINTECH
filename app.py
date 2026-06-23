@@ -48,13 +48,13 @@ def optimal_bins(data):
 
 def format_currency(value):
     """Format currency with $ sign and commas."""
-    if pd.isna(value):
+    if pd.isna(value) or value is None:
         return "N/A"
     return f"${value:,.2f}"
 
 def format_percent(value):
     """Format percentage."""
-    if pd.isna(value):
+    if pd.isna(value) or value is None:
         return "N/A"
     return f"{value:.2f}%"
 
@@ -69,7 +69,7 @@ st.set_page_config(
 )
 
 # ------------------------------
-# Custom CSS for Clean UI
+# Custom CSS for Clean UI & Readability
 # ------------------------------
 st.markdown("""
 <style>
@@ -110,6 +110,46 @@ st.markdown("""
     }
     .card-loss {
         border-left-color: #c62828;
+    }
+    /* Recommendation boxes – high contrast */
+    .rec-buy {
+        background: #e8f5e9;
+        border-left: 6px solid #2e7d32;
+        padding: 1.2rem;
+        border-radius: 10px;
+        color: #1b5e20;
+        font-weight: 500;
+    }
+    .rec-buy h3 {
+        color: #1b5e20;
+        margin: 0;
+        font-size: 1.8rem;
+    }
+    .rec-hold {
+        background: #fff3e0;
+        border-left: 6px solid #f57c00;
+        padding: 1.2rem;
+        border-radius: 10px;
+        color: #bf360c;
+        font-weight: 500;
+    }
+    .rec-hold h3 {
+        color: #bf360c;
+        margin: 0;
+        font-size: 1.8rem;
+    }
+    .rec-dont {
+        background: #fce4ec;
+        border-left: 6px solid #c62828;
+        padding: 1.2rem;
+        border-radius: 10px;
+        color: #b71c1c;
+        font-weight: 500;
+    }
+    .rec-dont h3 {
+        color: #b71c1c;
+        margin: 0;
+        font-size: 1.8rem;
     }
     /* Metric boxes */
     .metric-box {
@@ -169,34 +209,18 @@ st.markdown("""
         background: #e8eaf6;
         border-radius: 8px;
     }
-    /* Tooltip style */
-    .tooltip {
-        position: relative;
-        display: inline-block;
-        border-bottom: 1px dotted #5c6bc0;
-        cursor: help;
+    /* About section in sidebar – improved readability */
+    .about-box {
+        background: white;
+        padding: 1rem;
+        border-radius: 10px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        color: #1a237e;
+        font-size: 0.95rem;
+        line-height: 1.6;
     }
-    .tooltip .tooltiptext {
-        visibility: hidden;
-        width: 220px;
-        background-color: #1a237e;
-        color: #fff;
-        text-align: center;
-        border-radius: 6px;
-        padding: 5px;
-        position: absolute;
-        z-index: 1;
-        bottom: 125%;
-        left: 50%;
-        margin-left: -110px;
-        opacity: 0;
-        transition: opacity 0.3s;
-        font-size: 0.8rem;
-        font-weight: normal;
-    }
-    .tooltip:hover .tooltiptext {
-        visibility: visible;
-        opacity: 1;
+    .about-box b {
+        color: #1a237e;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -212,22 +236,32 @@ st.sidebar.markdown("""
 
 symbol = st.sidebar.text_input("Stock / Crypto Symbol:", value="AAPL").upper()
 
-st.sidebar.markdown("#### Quick Picks")
-cols = st.sidebar.columns(3)
-quick_symbols = ["AAPL", "GOOGL", "BTC-USD", "TSLA", "AMZN", "ETH-USD"]
-for i, sym in enumerate(quick_symbols):
-    if cols[i % 3].button(sym, key=f"qs_{sym}"):
+st.sidebar.markdown("#### Top 5 Stocks")
+cols_stocks = st.sidebar.columns(3)
+top_stocks = ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA"]
+for i, sym in enumerate(top_stocks):
+    if cols_stocks[i % 3].button(sym, key=f"stock_{sym}"):
+        symbol = sym
+
+st.sidebar.markdown("#### Top 5 Cryptocurrencies")
+cols_crypto = st.sidebar.columns(3)
+top_crypto = ["BTC-USD", "ETH-USD", "BNB-USD", "SOL-USD", "XRP-USD"]
+for i, sym in enumerate(top_crypto):
+    if cols_crypto[i % 3].button(sym, key=f"crypto_{sym}"):
         symbol = sym
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("""
-<div style="background:#e8eaf6; border-radius:10px; padding:1rem; font-size:0.9rem;">
-    <b>📘 About</b><br>
-    This app provides in-depth analysis of any stock or crypto.<br><br>
+<div class="about-box">
+    <b>📘 About</b><br><br>
+    This app provides in‑depth analysis of any stock or cryptocurrency.<br><br>
     ✅ 5‑year histograms<br>
     ✅ Investment simulation<br>
     ✅ Buy/Hold/Don't buy recommendation<br>
-    ✅ Advanced indicators (RSI, MACD, moving averages)
+    ✅ Advanced indicators (RSI, MACD, moving averages)<br><br>
+    <span style="font-size:0.85rem; color:#5c6bc0;">
+        Data from Yahoo Finance • Not financial advice
+    </span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -293,7 +327,7 @@ with st.spinner(f"Fetching data for {symbol}..."):
         st.stop()
 
 # ------------------------------
-# Company Info Cards
+# Company Info Cards (handle missing gracefully)
 # ------------------------------
 col1, col2, col3, col4 = st.columns(4)
 with col1:
@@ -313,11 +347,12 @@ with col2:
     </div>
     """, unsafe_allow_html=True)
 with col3:
+    # Sector/Industry might be N/A
     st.markdown(f"""
     <div class="card">
         <h4 style="margin:0;">🏭 Sector</h4>
-        <p style="font-size:1rem; font-weight:500; margin:0.2rem 0;">{sector}</p>
-        <p style="color:#666; margin:0;">{industry}</p>
+        <p style="font-size:1rem; font-weight:500; margin:0.2rem 0;">{sector if sector != 'N/A' else '—'}</p>
+        <p style="color:#666; margin:0;">{industry if industry != 'N/A' else '—'}</p>
     </div>
     """, unsafe_allow_html=True)
 with col4:
@@ -589,14 +624,26 @@ if five_year is not None and not five_year.empty:
     col1, col2 = st.columns([2, 1])
     with col1:
         if buy_score >= 3:
-            st.success("### ✅ BUY Signal")
-            st.markdown("Strong positive indicators suggest a favorable entry point.")
+            st.markdown("""
+            <div class="rec-buy">
+                <h3>✅ BUY</h3>
+                <p style="font-size:1.1rem; margin-top:0.2rem;">Strong positive indicators suggest a favorable entry point.</p>
+            </div>
+            """, unsafe_allow_html=True)
         elif buy_score >= 1:
-            st.warning("### ⚖️ HOLD / NEUTRAL")
-            st.markdown("Mixed signals; consider waiting for clearer trends.")
+            st.markdown("""
+            <div class="rec-hold">
+                <h3>⚖️ HOLD / NEUTRAL</h3>
+                <p style="font-size:1.1rem; margin-top:0.2rem;">Mixed signals; consider waiting for clearer trends.</p>
+            </div>
+            """, unsafe_allow_html=True)
         else:
-            st.error("### ❌ DON'T BUY")
-            st.markdown("Several risk factors indicate caution – consider other opportunities.")
+            st.markdown("""
+            <div class="rec-dont">
+                <h3>❌ DON'T BUY</h3>
+                <p style="font-size:1.1rem; margin-top:0.2rem;">Several risk factors indicate caution – consider other opportunities.</p>
+            </div>
+            """, unsafe_allow_html=True)
 
     with col2:
         st.markdown(f"""
