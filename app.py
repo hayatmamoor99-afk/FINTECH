@@ -15,6 +15,16 @@ from datetime import timedelta
 import warnings
 warnings.filterwarnings('ignore')
 
+# Helper function for RSI calculation (Moved to top)
+def calculate_rsi(data, window=14):
+    """Calculate RSI indicator"""
+    delta = data.diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=window).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=window).mean()
+    rs = gain / loss
+    rsi = 100 - (100 / (1 + rs))
+    return rsi
+
 # Page configuration
 st.set_page_config(
     page_title="FinTech Analytics Pro",
@@ -223,7 +233,7 @@ if symbol:
             """, unsafe_allow_html=True)
         
         with col2:
-            # FIXED: Handle None case properly
+            # Handle None case properly
             if current_price is not None:
                 price_display = f"${current_price:.2f}"
             else:
@@ -247,7 +257,7 @@ if symbol:
             """, unsafe_allow_html=True)
         
         with col4:
-            # FIXED: Handle market_cap display properly
+            # Handle market_cap display properly
             if isinstance(market_cap, (int, float)):
                 market_cap_display = f"${market_cap:,.0f}"
             else:
@@ -531,11 +541,13 @@ if symbol:
         st.markdown("### 🚀 Future-Centric Analytics")
         
         if len(historical_data) > 0 and '5 Years' in historical_data:
-            five_year_data = historical_data['5 Years']
+            five_year_data = historical_data['5 Years'].copy()
             
             # Calculate moving averages and trends
             five_year_data['SMA_50'] = five_year_data['Close'].rolling(window=50).mean()
             five_year_data['SMA_200'] = five_year_data['Close'].rolling(window=200).mean()
+            
+            # Calculate RSI - using the function defined at the top
             five_year_data['RSI'] = calculate_rsi(five_year_data['Close'])
             
             # Create advanced chart
@@ -618,13 +630,3 @@ st.markdown("""
     <p style='font-size: 0.7rem; color: #7986cb;'>Data sourced from Yahoo Finance | Not financial advice</p>
 </div>
 """, unsafe_allow_html=True)
-
-# Helper function for RSI calculation
-def calculate_rsi(data, window=14):
-    """Calculate RSI indicator"""
-    delta = data.diff()
-    gain = (delta.where(delta > 0, 0)).rolling(window=window).mean()
-    loss = (-delta.where(delta < 0, 0)).rolling(window=window).mean()
-    rs = gain / loss
-    rsi = 100 - (100 / (1 + rs))
-    return rsi
