@@ -293,26 +293,33 @@ if symbol:
                         # Create histogram using plotly
                         fig = go.Figure()
                         
+                        # Calculate histogram bins
+                        prices = data['Close'].values
+                        hist, bins = np.histogram(prices, bins=30)
+                        
+                        # Create color array based on price levels
+                        colors = []
+                        for i in range(len(bins)-1):
+                            mid_price = (bins[i] + bins[i+1]) / 2
+                            # Normalize price to 0-1 for color mapping
+                            norm_price = (mid_price - prices.min()) / (prices.max() - prices.min()) if prices.max() != prices.min() else 0.5
+                            if norm_price < 0.33:
+                                colors.append('#c62828')  # Red for low prices
+                            elif norm_price < 0.66:
+                                colors.append('#ff9800')  # Orange for mid prices
+                            else:
+                                colors.append('#2e7d32')  # Green for high prices
+                        
                         # Add histogram trace with custom colors
-                        fig.add_trace(go.Histogram(
-                            x=data['Close'],
-                            nbinsx=30,
+                        fig.add_trace(go.Bar(
+                            x=bins[:-1],
+                            y=hist,
+                            width=[bins[i+1] - bins[i] for i in range(len(bins)-1)],
+                            marker_color=colors,
                             name='Price Distribution',
-                            marker=dict(
-                                color=data['Close'],
-                                colorscale=[
-                                    [0, '#c62828'],      # Red for low prices
-                                    [0.5, '#ff9800'],    # Orange for mid prices
-                                    [1, '#2e7d32']       # Green for high prices
-                                ],
-                                showscale=True,
-                                colorbar=dict(
-                                    title="Price ($)",
-                                    titleside="right"
-                                )
-                            ),
-                            hovertemplate='<b>Price Range:</b> $%{x:.2f}<br>' +
-                                         '<b>Frequency:</b> %{y} days<extra></extra>'
+                            hovertemplate='<b>Price Range:</b> $%{x:.2f} - $%{customdata[0]:.2f}<br>' +
+                                         '<b>Frequency:</b> %{y} days<extra></extra>',
+                            customdata=[[bins[i+1]] for i in range(len(bins)-1)]
                         ))
                         
                         # Add vertical line for current price
@@ -321,10 +328,32 @@ if symbol:
                                 x=current_price,
                                 line_dash="dash",
                                 line_color="#1a237e",
-                                line_width=2,
+                                line_width=3,
                                 annotation_text=f"Current: ${current_price:.2f}",
                                 annotation_position="top"
                             )
+                        
+                        # Add mean and median lines
+                        mean_price = data['Close'].mean()
+                        median_price = data['Close'].median()
+                        
+                        fig.add_vline(
+                            x=mean_price,
+                            line_dash="dot",
+                            line_color="#1565c0",
+                            line_width=2,
+                            annotation_text=f"Mean: ${mean_price:.2f}",
+                            annotation_position="bottom"
+                        )
+                        
+                        fig.add_vline(
+                            x=median_price,
+                            line_dash="dashdot",
+                            line_color="#6a1b9a",
+                            line_width=2,
+                            annotation_text=f"Median: ${median_price:.2f}",
+                            annotation_position="bottom"
+                        )
                         
                         # Update layout
                         fig.update_layout(
@@ -332,15 +361,14 @@ if symbol:
                             xaxis_title='Price ($)',
                             yaxis_title='Number of Days',
                             template='plotly_white',
-                            height=450,
+                            height=500,
                             bargap=0.05,
-                            hovermode='x'
-                        )
-                        
-                        # Add range slider for zoom
-                        fig.update_xaxes(
-                            rangeslider=dict(visible=True),
-                            type="linear"
+                            hovermode='x',
+                            showlegend=False,
+                            xaxis=dict(
+                                rangeslider=dict(visible=True),
+                                type="linear"
+                            )
                         )
                         
                         st.plotly_chart(fig, use_container_width=True)
@@ -371,6 +399,10 @@ if symbol:
                         st.metric(
                             "Std Deviation",
                             f"${data['Close'].std():.2f}"
+                        )
+                        st.metric(
+                            "Total Days",
+                            f"{len(data):,}"
                         )
                         
                         st.markdown("</div>", unsafe_allow_html=True)
@@ -417,8 +449,11 @@ if symbol:
                         **Understanding the Histogram:**
                         - The histogram shows how many days the stock traded at different price levels
                         - **Taller bars** indicate the price stayed in that range for more days
-                        - **Color gradient**: Red (low prices) → Orange (mid prices) → Green (high prices)
-                        - The **dashed vertical line** shows the current price
+                        - **Color coding**: 🔴 Red (low prices) → 🟠 Orange (mid prices) → 🟢 Green (high prices)
+                        - **Vertical lines**: 
+                          - Solid blue: Current price
+                          - Dotted blue: Mean (average) price
+                          - Dash-dot purple: Median (middle) price
                         
                         **Key Statistics:**
                         - **Mean Price**: Average price over the period
