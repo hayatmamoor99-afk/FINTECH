@@ -69,7 +69,7 @@ st.set_page_config(
 )
 
 # ------------------------------
-# Custom CSS for Clean UI & Readability
+# Custom CSS – Updated for Readability
 # ------------------------------
 st.markdown("""
 <style>
@@ -96,14 +96,22 @@ st.markdown("""
         color: #1a237e;
         box-shadow: 0 4px 6px rgba(0,0,0,0.05);
     }
-    /* Cards */
+    /* Cards – now with white background and black text */
     .card {
-        background: white;
+        background: white !important;
         padding: 1.5rem;
         border-radius: 12px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         margin-bottom: 1.2rem;
         border-left: 4px solid #1a237e;
+        color: #000000 !important;
+    }
+    .card h4 {
+        color: #000000 !important;
+        font-weight: 700;
+    }
+    .card p, .card div, .card span {
+        color: #000000 !important;
     }
     .card-gain {
         border-left-color: #2e7d32;
@@ -170,7 +178,7 @@ st.markdown("""
     .metric-value {
         font-size: 1.4rem;
         font-weight: 700;
-        color: #1a237e;
+        color: #000000;
         margin: 0.2rem 0;
     }
     /* Buttons */
@@ -209,18 +217,18 @@ st.markdown("""
         background: #e8eaf6;
         border-radius: 8px;
     }
-    /* About section in sidebar – improved readability */
+    /* About section in sidebar – white background, black text */
     .about-box {
-        background: white;
+        background: white !important;
         padding: 1rem;
         border-radius: 10px;
         box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-        color: #1a237e;
+        color: #000000 !important;
         font-size: 0.95rem;
         line-height: 1.6;
     }
-    .about-box b {
-        color: #1a237e;
+    .about-box b, .about-box p, .about-box span {
+        color: #000000 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -259,7 +267,7 @@ st.sidebar.markdown("""
     ✅ Investment simulation<br>
     ✅ Buy/Hold/Don't buy recommendation<br>
     ✅ Advanced indicators (RSI, MACD, moving averages)<br><br>
-    <span style="font-size:0.85rem; color:#5c6bc0;">
+    <span style="font-size:0.85rem;">
         Data from Yahoo Finance • Not financial advice
     </span>
 </div>
@@ -327,40 +335,39 @@ with st.spinner(f"Fetching data for {symbol}..."):
         st.stop()
 
 # ------------------------------
-# Company Info Cards (handle missing gracefully)
+# Company Info Cards – Updated with inline black styling
 # ------------------------------
 col1, col2, col3, col4 = st.columns(4)
 with col1:
     st.markdown(f"""
     <div class="card">
-        <h4 style="margin:0;">🏢 Company</h4>
-        <p style="font-size:1.2rem; font-weight:600; margin:0.2rem 0;">{company_name}</p>
-        <p style="color:#666; margin:0;">{symbol}</p>
+        <h4 style="margin:0; color:black; font-weight:bold;">🏢 Company</h4>
+        <p style="font-size:1.2rem; font-weight:700; margin:0.2rem 0; color:black;">{company_name}</p>
+        <p style="color:#333; margin:0; font-weight:500;">{symbol}</p>
     </div>
     """, unsafe_allow_html=True)
 with col2:
     price_display = format_currency(current_price) if current_price else "N/A"
     st.markdown(f"""
     <div class="card">
-        <h4 style="margin:0;">Current Price</h4>
-        <p style="font-size:2rem; font-weight:700; color:#1a237e; margin:0.2rem 0;">{price_display}</p>
+        <h4 style="margin:0; color:black; font-weight:bold;">💰 Current Price</h4>
+        <p style="font-size:2rem; font-weight:700; color:black; margin:0.2rem 0;">{price_display}</p>
     </div>
     """, unsafe_allow_html=True)
 with col3:
-    # Sector/Industry might be N/A
     st.markdown(f"""
     <div class="card">
-        <h4 style="margin:0;">Sector</h4>
-        <p style="font-size:1rem; font-weight:500; margin:0.2rem 0;">{sector if sector != 'N/A' else '—'}</p>
-        <p style="color:#666; margin:0;">{industry if industry != 'N/A' else '—'}</p>
+        <h4 style="margin:0; color:black; font-weight:bold;">🏭 Sector</h4>
+        <p style="font-size:1.2rem; font-weight:600; margin:0.2rem 0; color:black;">{sector if sector != 'N/A' else '—'}</p>
+        <p style="color:#333; margin:0; font-weight:500;">{industry if industry != 'N/A' else '—'}</p>
     </div>
     """, unsafe_allow_html=True)
 with col4:
     cap_display = format_currency(market_cap) if market_cap else "N/A"
     st.markdown(f"""
     <div class="card">
-        <h4 style="margin:0;">📊 Market Cap</h4>
-        <p style="font-size:1.2rem; font-weight:500; margin:0.2rem 0;">{cap_display}</p>
+        <h4 style="margin:0; color:black; font-weight:bold;">📊 Market Cap</h4>
+        <p style="font-size:1.2rem; font-weight:700; margin:0.2rem 0; color:black;">{cap_display}</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -563,60 +570,60 @@ if five_year is not None and not five_year.empty:
     # 1. Trend
     if price_change > 20:
         buy_score += 2
-        reasons.append("Strong 5‑year upward trend (>20%)")
+        reasons.append("✅ Strong 5‑year upward trend (>20%)")
     elif price_change > 10:
         buy_score += 1
-        reasons.append("Moderate 5‑year upward trend (>10%)")
+        reasons.append("✅ Moderate 5‑year upward trend (>10%)")
     elif price_change < -20:
         buy_score -= 2
-        risks.append("Significant 5‑year decline (>20%)")
+        risks.append("⚠️ Significant 5‑year decline (>20%)")
 
     # 2. Moving averages
     if sma_50 and close.iloc[-1] > sma_50:
         buy_score += 1
-        reasons.append("Price above 50‑day SMA (short‑term bullish)")
+        reasons.append("✅ Price above 50‑day SMA (short‑term bullish)")
     if sma_200 and close.iloc[-1] > sma_200:
         buy_score += 1
-        reasons.append("Price above 200‑day SMA (long‑term bullish)")
+        reasons.append("✅ Price above 200‑day SMA (long‑term bullish)")
 
     # 3. RSI
     if rsi is not None:
         if rsi < 30:
             buy_score += 1
-            reasons.append("RSI oversold (<30) – potential bounce")
+            reasons.append("✅ RSI oversold (<30) – potential bounce")
         elif rsi > 70:
             buy_score -= 1
-            risks.append("RSI overbought (>70) – potential pullback")
+            risks.append("⚠️ RSI overbought (>70) – potential pullback")
 
     # 4. MACD
     if macd_val is not None and signal_val is not None:
         if macd_val > signal_val:
             buy_score += 1
-            reasons.append("MACD above signal line (bullish crossover)")
+            reasons.append("✅ MACD above signal line (bullish crossover)")
         else:
             buy_score -= 1
-            risks.append("MACD below signal line (bearish crossover)")
+            risks.append("⚠️ MACD below signal line (bearish crossover)")
 
     # 5. Momentum
     if momentum is not None:
         if momentum > 5:
             buy_score += 1
-            reasons.append("Positive 1‑month momentum (>5%)")
+            reasons.append("✅ Positive 1‑month momentum (>5%)")
         elif momentum < -5:
             buy_score -= 1
-            risks.append("Negative 1‑month momentum (<-5%)")
+            risks.append("⚠️ Negative 1‑month momentum (<-5%)")
 
     # 6. Volatility
     if volatility > 40:
-        risks.append("High annualized volatility (>40%)")
+        risks.append("⚠️ High annualized volatility (>40%)")
     elif volatility < 20:
-        reasons.append("Low volatility (<20%) – stable")
+        reasons.append("✅ Low volatility (<20%) – stable")
 
     # 7. Sharpe ratio
     if sharpe > 1:
-        reasons.append(f"Good risk‑adjusted return (Sharpe > 1)")
+        reasons.append(f"✅ Good risk‑adjusted return (Sharpe > 1)")
     elif sharpe < 0:
-        risks.append("Negative Sharpe ratio – poor risk/reward")
+        risks.append("⚠️ Negative Sharpe ratio – poor risk/reward")
 
     # Final decision
     st.markdown("#### 📈 Recommendation")
@@ -626,21 +633,21 @@ if five_year is not None and not five_year.empty:
         if buy_score >= 3:
             st.markdown("""
             <div class="rec-buy">
-                <h3>BUY</h3>
+                <h3>✅ BUY</h3>
                 <p style="font-size:1.1rem; margin-top:0.2rem;">Strong positive indicators suggest a favorable entry point.</p>
             </div>
             """, unsafe_allow_html=True)
         elif buy_score >= 1:
             st.markdown("""
             <div class="rec-hold">
-                <h3>HOLD / NEUTRAL</h3>
+                <h3>⚖️ HOLD / NEUTRAL</h3>
                 <p style="font-size:1.1rem; margin-top:0.2rem;">Mixed signals; consider waiting for clearer trends.</p>
             </div>
             """, unsafe_allow_html=True)
         else:
             st.markdown("""
             <div class="rec-dont">
-                <h3>DON'T BUY</h3>
+                <h3>❌ DON'T BUY</h3>
                 <p style="font-size:1.1rem; margin-top:0.2rem;">Several risk factors indicate caution – consider other opportunities.</p>
             </div>
             """, unsafe_allow_html=True)
@@ -648,16 +655,16 @@ if five_year is not None and not five_year.empty:
     with col2:
         st.markdown(f"""
         <div class="card">
-            <h4 style="margin:0;">Scorecard</h4>
-            <p><b>Buy Score:</b> {buy_score} / 7</p>
-            <p><b>Volatility:</b> {volatility:.2f}%</p>
-            <p><b>Sharpe:</b> {sharpe:.2f}</p>
-            <p><b>5Y Change:</b> {price_change:.2f}%</p>
+            <h4 style="margin:0; color:black; font-weight:bold;">📊 Scorecard</h4>
+            <p style="color:black;"><b>Buy Score:</b> {buy_score} / 7</p>
+            <p style="color:black;"><b>Volatility:</b> {volatility:.2f}%</p>
+            <p style="color:black;"><b>Sharpe:</b> {sharpe:.2f}</p>
+            <p style="color:black;"><b>5Y Change:</b> {price_change:.2f}%</p>
         </div>
         """, unsafe_allow_html=True)
 
     # Detailed reasoning
-    with st.expander("Detailed Reasoning & Risk Factors"):
+    with st.expander("🔍 Detailed Reasoning & Risk Factors"):
         st.markdown("**Positive Factors:**")
         for r in reasons:
             st.markdown(f"- {r}")
@@ -687,7 +694,7 @@ if five_year is not None and not five_year.empty:
     # ------------------------------
     # Future-Centric Analytics
     # ------------------------------
-    st.markdown("##Future‑Centric Analytics")
+    st.markdown("## 🚀 Future‑Centric Analytics")
     st.markdown("*Advanced indicators to anticipate price movements.*")
 
     # Create subplots: Price + MAs, RSI, MACD
@@ -729,7 +736,7 @@ if five_year is not None and not five_year.empty:
 
     st.plotly_chart(fig_adv, use_container_width=True)
 
-    with st.expander("How to Interpret These Indicators"):
+    with st.expander("🧠 How to Interpret These Indicators"):
         st.markdown("""
         - **Price & MAs**: When price > SMA 200 → long‑term uptrend. Golden cross (SMA 50 crosses above SMA 200) is a strong bullish signal.
         - **RSI**: Values >70 indicate overbought (potential drop), <30 oversold (potential rise).
@@ -742,7 +749,7 @@ else:
 # ------------------------------
 # Glossary / Educational Section
 # ------------------------------
-with st.expander("Glossary of Financial Terms (For Beginners)"):
+with st.expander("📚 Glossary of Financial Terms (For Beginners)"):
     st.markdown("""
     - **Histogram**: A chart that shows how many times prices fell into each range.
     - **Mean**: The average price over the period.
@@ -762,7 +769,7 @@ with st.expander("Glossary of Financial Terms (For Beginners)"):
 st.markdown("---")
 st.markdown("""
 <div class="footer">
-    <p>📊 FinTech Analytics Pro | Designed by <b>Mamoor Hayat</b></p>
+    <p>📊 FinTech Analytics Pro | Designed with ❤️ by <b>Mamoor Hayat</b></p>
     <p style="font-size:0.8rem; color:#5c6bc0;">© 2024 All Rights Reserved | Data from Yahoo Finance | Not financial advice</p>
 </div>
 """, unsafe_allow_html=True)
