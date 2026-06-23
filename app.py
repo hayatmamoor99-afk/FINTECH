@@ -282,63 +282,98 @@ if symbol:
         for tab, (period_name, data) in zip(tabs, historical_data.items()):
             with tab:
                 if not data.empty:
-                    # Calculate daily returns
+                    # Calculate metrics
                     data['Daily_Return'] = data['Close'].pct_change() * 100
                     data['Investment_Value'] = 100 * (data['Close'] / data['Close'].iloc[0])
                     
-                    # Create histogram with plotly
-                    fig = go.Figure()
+                    # Create two columns for histogram and metrics
+                    col1, col2 = st.columns([3, 1])
                     
-                    # Add histogram bars with different colors based on returns
-                    returns = data['Daily_Return'].dropna()
-                    
-                    # Create color array based on positive/negative returns
-                    colors = ['#2e7d32' if x >= 0 else '#c62828' for x in returns]
-                    
-                    fig.add_trace(go.Bar(
-                        x=returns.index,
-                        y=returns,
-                        marker_color=colors,
-                        name='Daily Returns',
-                        hovertemplate='<b>Date:</b> %{x}<br>' +
-                                     '<b>Return:</b> %{y:.2f}%<br>' +
-                                     '<b>Investment Value:</b> $%{customdata[0]:.2f}<extra></extra>',
-                        customdata=data.loc[returns.index, 'Investment_Value'].values.reshape(-1, 1)
-                    ))
-                    
-                    # Update layout
-                    fig.update_layout(
-                        title=f'{period_name} Daily Returns Distribution',
-                        xaxis_title='Date',
-                        yaxis_title='Daily Return (%)',
-                        template='plotly_white',
-                        height=500,
-                        hovermode='x unified',
-                        xaxis=dict(
-                            rangeselector=dict(
-                                buttons=list([
-                                    dict(count=1, label="1M", step="month", stepmode="backward"),
-                                    dict(count=3, label="3M", step="month", stepmode="backward"),
-                                    dict(count=6, label="6M", step="month", stepmode="backward"),
-                                    dict(step="all", label="All")
-                                ])
+                    with col1:
+                        # Create histogram using plotly
+                        fig = go.Figure()
+                        
+                        # Add histogram trace with custom colors
+                        fig.add_trace(go.Histogram(
+                            x=data['Close'],
+                            nbinsx=30,
+                            name='Price Distribution',
+                            marker=dict(
+                                color=data['Close'],
+                                colorscale=[
+                                    [0, '#c62828'],      # Red for low prices
+                                    [0.5, '#ff9800'],    # Orange for mid prices
+                                    [1, '#2e7d32']       # Green for high prices
+                                ],
+                                showscale=True,
+                                colorbar=dict(
+                                    title="Price ($)",
+                                    titleside="right"
+                                )
                             ),
+                            hovertemplate='<b>Price Range:</b> $%{x:.2f}<br>' +
+                                         '<b>Frequency:</b> %{y} days<extra></extra>'
+                        ))
+                        
+                        # Add vertical line for current price
+                        if current_price is not None:
+                            fig.add_vline(
+                                x=current_price,
+                                line_dash="dash",
+                                line_color="#1a237e",
+                                line_width=2,
+                                annotation_text=f"Current: ${current_price:.2f}",
+                                annotation_position="top"
+                            )
+                        
+                        # Update layout
+                        fig.update_layout(
+                            title=f'{period_name} Price Distribution Histogram',
+                            xaxis_title='Price ($)',
+                            yaxis_title='Number of Days',
+                            template='plotly_white',
+                            height=450,
+                            bargap=0.05,
+                            hovermode='x'
+                        )
+                        
+                        # Add range slider for zoom
+                        fig.update_xaxes(
                             rangeslider=dict(visible=True),
-                            type="date"
-                        ),
-                        yaxis=dict(
-                            zeroline=True,
-                            zerolinecolor='#1a237e',
-                            zerolinewidth=1.5
-                        ),
-                        bargap=0.1,
-                        showlegend=False
-                    )
+                            type="linear"
+                        )
+                        
+                        st.plotly_chart(fig, use_container_width=True)
                     
-                    # Add horizontal line at zero
-                    fig.add_hline(y=0, line_dash="dash", line_color="#1a237e", opacity=0.3)
-                    
-                    st.plotly_chart(fig, use_container_width=True)
+                    with col2:
+                        # Display key statistics
+                        st.markdown("""
+                        <div class='card'>
+                            <h4 style='color: #1a237e;'>📊 Key Statistics</h4>
+                        """, unsafe_allow_html=True)
+                        
+                        st.metric(
+                            "Mean Price",
+                            f"${data['Close'].mean():.2f}"
+                        )
+                        st.metric(
+                            "Median Price",
+                            f"${data['Close'].median():.2f}"
+                        )
+                        st.metric(
+                            "Min Price",
+                            f"${data['Close'].min():.2f}"
+                        )
+                        st.metric(
+                            "Max Price",
+                            f"${data['Close'].max():.2f}"
+                        )
+                        st.metric(
+                            "Std Deviation",
+                            f"${data['Close'].std():.2f}"
+                        )
+                        
+                        st.markdown("</div>", unsafe_allow_html=True)
                     
                     # Investment simulation
                     st.markdown("#### 💰 Investment Simulation: $100 Investment")
@@ -380,20 +415,27 @@ if symbol:
                     with st.expander("📖 What does this mean? (Click to expand)"):
                         st.markdown("""
                         **Understanding the Histogram:**
-                        - Each bar represents the daily price change percentage for the stock
-                        - 🟢 **Green bars** indicate days when the stock price increased
-                        - 🔴 **Red bars** indicate days when the stock price decreased
-                        - The taller the bar, the larger the price movement
+                        - The histogram shows how many days the stock traded at different price levels
+                        - **Taller bars** indicate the price stayed in that range for more days
+                        - **Color gradient**: Red (low prices) → Orange (mid prices) → Green (high prices)
+                        - The **dashed vertical line** shows the current price
+                        
+                        **Key Statistics:**
+                        - **Mean Price**: Average price over the period
+                        - **Median Price**: Middle value when prices are sorted
+                        - **Min/Max Price**: Lowest and highest prices reached
+                        - **Std Deviation**: Measures price volatility (higher = more volatile)
                         
                         **Investment Simulation:**
                         - Shows what would happen if you invested $100 at the start of this period
                         - The final value shows your total investment worth today
                         - Profit/Loss indicates how much you would have gained or lost
                         
-                        **Key Metrics to Watch:**
-                        - **Positive Returns**: More green bars indicate bullish trend
-                        - **Negative Returns**: More red bars indicate bearish trend
-                        - **Volatility**: Large swings indicate higher risk
+                        **What to Look For:**
+                        - **Symmetric distribution**: Prices evenly spread (stable market)
+                        - **Right-skewed**: More days at lower prices (bullish trend)
+                        - **Left-skewed**: More days at higher prices (bearish trend)
+                        - **Current price position**: Above mean = bullish, below mean = bearish
                         """)
                     
                     st.markdown("---")
