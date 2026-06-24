@@ -1,7 +1,7 @@
 """
 FinTech Analytics Pro
 Designed by Mamoor Hayat
-Copyright © 2024 All Rights Reserved
+Copyright © 2026 All Rights Reserved
 """
 
 import streamlit as st
@@ -770,6 +770,6 @@ st.markdown("---")
 st.markdown("""
 <div class="footer">
     <p>FinTech Analytics Pro | Designed by <b>Mamoor Hayat</b></p>
-    <p style="font-size:0.8rem; color:#5c6bc0;">© 2024 All Rights Reserved | Data from Yahoo Finance | Not financial advice</p>
+    <p style="font-size:0.8rem; color:#5c6bc0;">© 2026 All Rights Reserved | Data from Yahoo Finance | Not financial advice</p>
 </div>
 """, unsafe_allow_html=True)
