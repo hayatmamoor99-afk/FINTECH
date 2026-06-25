@@ -277,7 +277,7 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("""
 <div style="text-align:center; color:#5c6bc0; font-size:0.8rem;">
     Designed by <b>Mamoor Hayat</b><br>
-    © 2024 All Rights Reserved
+    © 2026 All Rights Reserved
 </div>
 """, unsafe_allow_html=True)
 
