@@ -1,5 +1,5 @@
 """
-FinTech Analytics Pro – Final Edition (UI & Guide Enhanced)
+FinTech Analytics Pro – Final Edition (AI Assistant)
 Designed by Mamoor Hayat
 © 2024 All Rights Reserved
 """
@@ -13,6 +13,15 @@ from plotly.subplots import make_subplots
 from datetime import datetime, timedelta
 import warnings
 warnings.filterwarnings('ignore')
+
+# ------------------------------------------------------------
+# Try to import OpenAI – if not installed, fallback gracefully
+# ------------------------------------------------------------
+try:
+    import openai
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
 
 # ------------------------------------------------------------
 # Page Configuration
@@ -126,6 +135,16 @@ st.markdown("""
         margin-top: 1rem;
         border-left: 4px solid #d98c2b;
         color: #000000;
+    }
+    .ai-badge {
+        background: #2a4b7c;
+        color: white;
+        padding: 0.2rem 0.8rem;
+        border-radius: 30px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        display: inline-block;
+        margin-left: 0.5rem;
     }
     @media (max-width: 768px) {
         .landing-header h1 { font-size: 2.4rem; }
@@ -316,7 +335,7 @@ def format_market_cap(value):
         return f"${value:,.0f}"
 
 # ------------------------------------------------------------
-# Q&A Knowledge Base
+# Static Knowledge Base (fallback)
 # ------------------------------------------------------------
 qa_knowledge = {
     "rsi": "RSI (Relative Strength Index) measures the speed and change of price movements. It ranges from 0 to 100. Values above 70 indicate overbought (price may fall), below 30 indicate oversold (price may rise). It's a momentum oscillator – helpful for spotting reversals.",
@@ -334,15 +353,51 @@ qa_knowledge = {
     "kelly": "The Kelly Criterion is a formula that suggests the optimal fraction of capital to bet on a trade, based on historical win rate and average win/loss ratio. It's a risk‑management tool – many traders use a fraction of Kelly (e.g., half‑Kelly) for safety.",
     "monte carlo": "Monte Carlo simulation runs thousands of random 'what‑if' scenarios to estimate the range of future outcomes. It uses historical returns (average and volatility) to generate many possible price paths. The result is a probability, not a certainty.",
     "regime": "Regime classification identifies the current market condition. Bullish means the price is significantly above its recent average; Bearish means below; Range‑bound means it's moving sideways. It helps contextualise trading decisions.",
-    "drawdown": "Maximum Drawdown is the largest peak‑to‑trough decline over the period. It's a key measure of downside risk – the worst loss you would have experienced if you bought at the peak and sold at the trough."
+    "drawdown": "Maximum Drawdown is the largest peak‑to‑trough decline over the period. It's a key measure of downside risk – the worst loss you would have experienced if you bought at the peak and sold at the trough.",
+    "kurtosis": "Kurtosis measures the 'tailedness' of a return distribution. High kurtosis means there are more extreme price moves than a normal distribution would predict – i.e., fat tails. It tells you about the risk of big surprises.",
+    "skewness": "Skewness measures the asymmetry of a distribution. Positive skew means the right tail is longer – more large gains than large losses; negative skew means the left tail is longer – more large losses. In investing, negative skew is considered riskier.",
+    "mean": "Mean (average) is the sum of all values divided by the number of values. It is sensitive to outliers. In finance, the mean return tells you the typical daily return, but it can be distorted by extreme days.",
+    "median": "Median is the middle value when all observations are sorted. It is more robust to outliers than the mean. In price histograms, the median gives a better central tendency if the data is skewed.",
+    "standard deviation": "Standard deviation measures the dispersion of returns around the mean. Higher standard deviation = higher volatility = more risk. It's the most common measure of total risk.",
+    "histogram": "A histogram groups data into bins and shows frequency. In price analysis, it shows how many days the price was in each range. Tall bars reveal price levels with high trading activity (potential support/resistance)."
 }
 
-def get_qa_answer(question):
+def get_qa_static(question):
     question_lower = question.lower().strip()
     for key, answer in qa_knowledge.items():
         if key in question_lower:
             return answer
-    return "I don't have a specific answer for that, but feel free to ask about RSI, MACD, Bollinger, Keltner, MFI, A/D, Chaikin, VaR, CVaR, Sortino, Calmar, Beta, Kelly, Monte Carlo, Regime, or Drawdown."
+    return None
+
+def get_qa_answer(question):
+    # First try static knowledge base
+    static_ans = get_qa_static(question)
+    if static_ans:
+        return static_ans
+
+    # If OpenAI is available and API key is set, use AI
+    if OPENAI_AVAILABLE:
+        try:
+            # Check if API key is set in secrets or environment
+            api_key = st.secrets.get("OPENAI_API_KEY", None) or os.environ.get("OPENAI_API_KEY", None)
+            if api_key:
+                openai.api_key = api_key
+                response = openai.ChatCompletion.create(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {"role": "system", "content": "You are a helpful financial education assistant. Answer the user's question about investing, indicators, risk metrics, or market analysis. Keep it concise but informative."},
+                        {"role": "user", "content": question}
+                    ],
+                    max_tokens=300,
+                    temperature=0.7
+                )
+                return response.choices[0].message.content.strip()
+            else:
+                return "🔑 OpenAI API key not found. Please set it in secrets to enable AI answers. Meanwhile, here are topics I can explain: RSI, MACD, Bollinger, Keltner, MFI, A/D, Chaikin, VaR, CVaR, Sortino, Calmar, Beta, Kelly, Monte Carlo, Regime, Drawdown, Kurtosis, Skewness, Mean, Median, Standard Deviation, Histogram."
+        except Exception as e:
+            return f"⚠️ AI error: {str(e)}. Falling back to static knowledge. Try asking about RSI, MACD, Bollinger, etc."
+    else:
+        return "🤖 OpenAI library not installed. Please install it (`pip install openai`) and set your API key to enable AI answers. Meanwhile, I can explain: RSI, MACD, Bollinger, Keltner, MFI, A/D, Chaikin, VaR, CVaR, Sortino, Calmar, Beta, Kelly, Monte Carlo, Regime, Drawdown, Kurtosis, Skewness, Mean, Median, Standard Deviation, Histogram."
 
 # ------------------------------------------------------------
 # UI Pages
@@ -395,12 +450,6 @@ def show_analysis():
     symbol = st.session_state.symbol
 
     # --- Prominent BACK TO HOME button ---
-    st.markdown(f"""
-    <button class="back-home-btn" onclick="window.location.reload()">
-        🏠 Back to Home
-    </button>
-    """, unsafe_allow_html=True)
-    # Actually, we'll use a Streamlit button with a key for proper rerun
     if st.button("🏠 Back to Home", key="back_home", use_container_width=True):
         st.session_state.symbol = None
         st.rerun()
@@ -994,10 +1043,10 @@ def show_analysis():
                     """, unsafe_allow_html=True)
 
     # ------------------------------------------------------------
-    # Comprehensive Guide (Educational Section) with Q&A
+    # Comprehensive Guide with AI Assistant
     # ------------------------------------------------------------
     st.markdown("---")
-    with st.expander("📖 Complete Guide & Ask the Assistant (Click to Expand)", expanded=False):
+    with st.expander("📖 Complete Guide & Ask the AI Assistant (Click to Expand)", expanded=False):
         st.markdown("""
         <div class="guide-section">
         <h3>📘 Financial Education Center</h3>
@@ -1050,18 +1099,19 @@ def show_analysis():
         </div>
         """, unsafe_allow_html=True)
 
-        # --- Interactive Q&A Assistant ---
-        st.markdown("### 💬 Ask the Assistant")
-        st.markdown("Type a question about any indicator or metric (e.g., 'What is RSI?')")
-        q_input = st.text_input("Your question:", key="qa_input", placeholder="e.g., What is MACD?")
+        # --- AI Assistant ---
+        st.markdown("### 💬 Ask the AI Assistant")
+        st.markdown("Type any question about finance, investing, or the analysis shown above. The assistant uses OpenAI GPT (if enabled) or a built‑in knowledge base.")
+        q_input = st.text_input("Your question:", key="qa_input", placeholder="e.g., What is Kurtosis? How does Beta work?")
         if q_input:
-            answer = get_qa_answer(q_input)
+            with st.spinner("Thinking..."):
+                answer = get_qa_answer(q_input)
             st.markdown(f"""
             <div class="qa-answer">
                 <strong>🤖 Assistant:</strong> {answer}
             </div>
             """, unsafe_allow_html=True)
-            st.caption("Try asking about: RSI, MACD, Bollinger, Keltner, MFI, Accumulation/Distribution, Chaikin, VaR, CVaR, Sortino, Calmar, Beta, Kelly, Monte Carlo, Regime, Drawdown.")
+            st.caption("💡 You can ask about: RSI, MACD, Bollinger, Keltner, MFI, A/D, Chaikin, VaR, CVaR, Sortino, Calmar, Beta, Kelly, Monte Carlo, Regime, Drawdown, Kurtosis, Skewness, Mean, Median, Standard Deviation, Histogram, and more.")
 
     # Footer
     st.markdown("---")
