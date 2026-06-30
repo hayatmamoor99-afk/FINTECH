@@ -1,7 +1,7 @@
 """
 FinTech Analytics Pro – Probabilistic Edition
 Designed by Mamoor Hayat
-Copyright © 2026 All Rights Reserved
+Copyright © 2024 All Rights Reserved
 """
 
 import streamlit as st
@@ -15,7 +15,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # ------------------------------------------------------------
-# Helper Functions (unchanged, but extended)
+# Helper Functions
 # ------------------------------------------------------------
 
 def calculate_rsi(data, window=14):
@@ -54,22 +54,16 @@ def format_percent(value):
     return f"{value:.2f}%"
 
 def monte_carlo_simulation(returns, current_price, days=252, n_simulations=1000):
-    """
-    Simulate future price paths using geometric Brownian motion.
-    Returns: array of final prices, and probability of profit.
-    """
+    """Simulate future price paths using geometric Brownian motion."""
     mu = returns.mean()
     sigma = returns.std()
-    dt = 1/252  # daily steps
-    # Simulate log returns
+    dt = 1/252
     log_returns = np.random.normal(mu - 0.5 * sigma**2, sigma, size=(days, n_simulations))
-    # Cumulative sum and exponentiate
     cumulative_log_returns = np.cumsum(log_returns, axis=0)
     price_paths = current_price * np.exp(cumulative_log_returns)
     final_prices = price_paths[-1, :]
     prob_profit = np.mean(final_prices > current_price)
     expected_return = np.mean(final_prices / current_price - 1) * 100
-    # Confidence intervals
     lower_bound = np.percentile(final_prices, 5)
     upper_bound = np.percentile(final_prices, 95)
     return prob_profit, expected_return, lower_bound, upper_bound, price_paths
@@ -81,7 +75,7 @@ st.set_page_config(
     page_title="FinTech Analytics Pro",
     page_icon="📊",
     layout="wide",
-    initial_sidebar_state="collapsed"  # sidebar hidden by default
+    initial_sidebar_state="collapsed"
 )
 
 # ------------------------------------------------------------
@@ -89,19 +83,9 @@ st.set_page_config(
 # ------------------------------------------------------------
 st.markdown("""
 <style>
-    /* Remove sidebar */
-    section[data-testid="stSidebar"] {
-        display: none;
-    }
-    .main {
-        background: #f8faff;
-        padding: 0 1rem;
-    }
-    .block-container {
-        padding-top: 2rem;
-        padding-bottom: 0rem;
-    }
-    /* Landing page header */
+    section[data-testid="stSidebar"] { display: none; }
+    .main { background: #f8faff; padding: 0 1rem; }
+    .block-container { padding-top: 2rem; padding-bottom: 0rem; }
     .landing-header {
         text-align: center;
         padding: 3rem 0 1rem 0;
@@ -110,52 +94,13 @@ st.markdown("""
         margin-bottom: 2rem;
         box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     }
-    .landing-header h1 {
-        font-size: 3.5rem;
-        font-weight: 700;
-        color: #1a237e;
-        margin: 0;
-    }
-    .landing-header p {
-        font-size: 1.2rem;
-        color: #5c6bc0;
-        margin: 0.5rem 0 1.5rem 0;
-    }
-    .search-box {
-        display: flex;
-        justify-content: center;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-    }
-    .search-box input {
-        padding: 0.8rem 1.5rem;
-        font-size: 1.2rem;
-        border: 2px solid #c5cae9;
-        border-radius: 30px;
-        width: 300px;
-        outline: none;
-        transition: 0.2s;
-    }
-    .search-box input:focus {
-        border-color: #1a237e;
-        box-shadow: 0 0 0 3px rgba(26,35,126,0.1);
-    }
-    .search-box button {
-        padding: 0.8rem 2rem;
-        font-size: 1.2rem;
-        background: #1a237e;
-        color: white;
-        border: none;
-        border-radius: 30px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: 0.2s;
-    }
-    .search-box button:hover {
-        background: #283593;
-        transform: scale(1.02);
-    }
-    /* Top picks cards */
+    .landing-header h1 { font-size: 3.5rem; font-weight: 700; color: #1a237e; margin: 0; }
+    .landing-header p { font-size: 1.2rem; color: #5c6bc0; margin: 0.5rem 0 1.5rem 0; }
+    .search-box { display: flex; justify-content: center; gap: 0.5rem; flex-wrap: wrap; }
+    .search-box input { padding: 0.8rem 1.5rem; font-size: 1.2rem; border: 2px solid #c5cae9; border-radius: 30px; width: 300px; outline: none; transition: 0.2s; }
+    .search-box input:focus { border-color: #1a237e; box-shadow: 0 0 0 3px rgba(26,35,126,0.1); }
+    .search-box button { padding: 0.8rem 2rem; font-size: 1.2rem; background: #1a237e; color: white; border: none; border-radius: 30px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+    .search-box button:hover { background: #283593; transform: scale(1.02); }
     .pick-card {
         background: white;
         border-radius: 16px;
@@ -166,22 +111,9 @@ st.markdown("""
         cursor: pointer;
         border: 1px solid #e8eaf6;
     }
-    .pick-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-        border-color: #1a237e;
-    }
-    .pick-card h4 {
-        font-size: 1.2rem;
-        color: #1a237e;
-        margin: 0.2rem 0;
-    }
-    .pick-card p {
-        color: #5c6bc0;
-        font-size: 0.9rem;
-        margin: 0;
-    }
-    /* Analysis cards */
+    .pick-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); border-color: #1a237e; }
+    .pick-card h4 { font-size: 1.2rem; color: #1a237e; margin: 0.2rem 0; }
+    .pick-card p { color: #5c6bc0; font-size: 0.9rem; margin: 0; }
     .card {
         background: white;
         padding: 1.5rem;
@@ -190,39 +122,11 @@ st.markdown("""
         margin-bottom: 1.2rem;
         border-left: 4px solid #1a237e;
     }
-    .card h4 {
-        color: #1a237e;
-        font-weight: 600;
-        margin-top: 0;
-    }
-    /* Probability recommendation */
-    .prob-high {
-        background: #e8f5e9;
-        border-left: 6px solid #2e7d32;
-        padding: 1.2rem;
-        border-radius: 12px;
-    }
-    .prob-medium {
-        background: #fff3e0;
-        border-left: 6px solid #f57c00;
-        padding: 1.2rem;
-        border-radius: 12px;
-    }
-    .prob-low {
-        background: #fce4ec;
-        border-left: 6px solid #c62828;
-        padding: 1.2rem;
-        border-radius: 12px;
-    }
-    .footer {
-        text-align: center;
-        padding: 1.5rem;
-        background: #e8eaf6;
-        border-radius: 16px;
-        margin-top: 2rem;
-        color: #1a237e;
-        font-weight: 500;
-    }
+    .card h4 { color: #1a237e; font-weight: 600; margin-top: 0; }
+    .prob-high { background: #e8f5e9; border-left: 6px solid #2e7d32; padding: 1.2rem; border-radius: 12px; }
+    .prob-medium { background: #fff3e0; border-left: 6px solid #f57c00; padding: 1.2rem; border-radius: 12px; }
+    .prob-low { background: #fce4ec; border-left: 6px solid #c62828; padding: 1.2rem; border-radius: 12px; }
+    .footer { text-align: center; padding: 1.5rem; background: #e8eaf6; border-radius: 16px; margin-top: 2rem; color: #1a237e; font-weight: 500; }
     @media (max-width: 768px) {
         .landing-header h1 { font-size: 2.2rem; }
         .search-box input { width: 200px; }
@@ -231,38 +135,28 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ------------------------------------------------------------
-# Session State for Symbol
+# Session State
 # ------------------------------------------------------------
 if 'symbol' not in st.session_state:
     st.session_state.symbol = None
 
 # ------------------------------------------------------------
-# Landing Page (displayed when no symbol is selected)
+# Landing Page
 # ------------------------------------------------------------
 def show_landing():
     st.markdown("""
     <div class="landing-header">
         <h1>📊 FinTech Analytics Pro</h1>
         <p>Advanced probabilistic analysis for stocks & cryptocurrencies</p>
-        <div class="search-box">
-            <input type="text" id="symbol_input" placeholder="Enter symbol (e.g., AAPL, BTC-USD)" />
-            <button onclick="document.getElementById('symbol_input').value = document.getElementById('symbol_input').value.toUpperCase(); 
-                             window.parent.postMessage({type:'streamlit:setValue', key:'symbol_input', value: document.getElementById('symbol_input').value}, '*');
-                             window.parent.postMessage({type:'streamlit:setValue', key:'symbol', value: document.getElementById('symbol_input').value}, '*');">
-                Analyze
-            </button>
-        </div>
     </div>
     """, unsafe_allow_html=True)
 
-    # We'll use a normal text input and button for Streamlit compatibility
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.markdown("#### Or type a symbol below")
-        symbol_input = st.text_input("Symbol", value="AAPL", key="landing_symbol").upper()
+        symbol_input = st.text_input("Enter symbol (e.g., AAPL, BTC-USD)", value="AAPL", key="landing_symbol").upper()
         if st.button("Analyze", key="landing_button"):
             st.session_state.symbol = symbol_input
-            st.experimental_rerun()
+            st.rerun()
 
     st.markdown("---")
     st.markdown("### 🔥 Top 5 Stocks")
@@ -272,7 +166,7 @@ def show_landing():
         with cols[i]:
             if st.button(sym, key=f"stock_{sym}"):
                 st.session_state.symbol = sym
-                st.experimental_rerun()
+                st.rerun()
 
     st.markdown("### 🪙 Top 5 Cryptocurrencies")
     top_crypto = ["BTC-USD", "ETH-USD", "BNB-USD", "SOL-USD", "XRP-USD"]
@@ -281,7 +175,7 @@ def show_landing():
         with cols[i]:
             if st.button(sym, key=f"crypto_{sym}"):
                 st.session_state.symbol = sym
-                st.experimental_rerun()
+                st.rerun()
 
     st.markdown("---")
     st.markdown("""
@@ -292,28 +186,24 @@ def show_landing():
     """, unsafe_allow_html=True)
 
 # ------------------------------------------------------------
-# Analysis Page (shown when symbol is set)
+# Analysis Page
 # ------------------------------------------------------------
 def show_analysis():
     symbol = st.session_state.symbol
-    # Back button
     if st.button("← Back to Home"):
         st.session_state.symbol = None
-        st.experimental_rerun()
+        st.rerun()
 
     st.markdown(f"## 📈 Analysis for **{symbol}**")
 
-    # Fetch data with retry
     try:
         ticker = yf.Ticker(symbol)
-        # Get current price
         current_data = ticker.history(period="1d")
         if current_data.empty:
             st.error("No data found. Please check symbol.")
             return
         current_price = current_data['Close'].iloc[-1]
 
-        # Get historical data for periods
         end_date = datetime.now()
         periods = {
             '1 Year': 365,
@@ -329,7 +219,6 @@ def show_analysis():
             if not df.empty:
                 historical[name] = df
 
-        # Company info
         try:
             info = ticker.info
             company_name = info.get('longName', symbol)
@@ -346,9 +235,7 @@ def show_analysis():
         st.error(f"Error fetching data: {e}")
         return
 
-    # ------------------------------------------------------------
     # Company Info Cards
-    # ------------------------------------------------------------
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.markdown(f"""
@@ -383,21 +270,18 @@ def show_analysis():
         """, unsafe_allow_html=True)
 
     # ------------------------------------------------------------
-    # Probabilistic Recommendation (Monte Carlo)
+    # Probabilistic Recommendation
     # ------------------------------------------------------------
     st.markdown("---")
     st.markdown("## 🎯 Recommendation Engine (Probabilistic)")
 
-    # Use 5-year daily returns for simulation
     five_year_data = historical.get('5 Years')
     if five_year_data is not None and len(five_year_data) > 10:
         returns = five_year_data['Close'].pct_change().dropna()
-        # Run Monte Carlo for 1 year horizon
         prob_profit, exp_return, lower, upper, paths = monte_carlo_simulation(
             returns, current_price, days=252, n_simulations=2000
         )
 
-        # Display probability
         st.markdown(f"""
         <div style="text-align:center; padding:1rem; background: #f3f4f9; border-radius:16px; margin-bottom:1.5rem;">
             <h3>Probability of Profit (1‑year horizon)</h3>
@@ -406,7 +290,6 @@ def show_analysis():
         </div>
         """, unsafe_allow_html=True)
 
-        # Recommendation based on probability
         if prob_profit > 0.65:
             rec_class = "prob-high"
             rec_text = "✅ BUY – High probability of positive return"
@@ -427,9 +310,8 @@ def show_analysis():
         </div>
         """, unsafe_allow_html=True)
 
-        # Plot some sample paths
+        # Plot sample paths
         fig_paths = go.Figure()
-        # Plot 50 random paths (for clarity)
         np.random.seed(42)
         indices = np.random.choice(paths.shape[1], 50, replace=False)
         for i in indices:
@@ -440,7 +322,6 @@ def show_analysis():
                 line=dict(width=0.8, color='rgba(26,35,126,0.2)'),
                 showlegend=False
             ))
-        # Plot mean path
         mean_path = np.mean(paths, axis=1)
         fig_paths.add_trace(go.Scatter(
             x=list(range(len(paths))),
@@ -449,7 +330,6 @@ def show_analysis():
             line=dict(color='#1a237e', width=3),
             name='Mean Path'
         ))
-        # Add current price horizontal line
         fig_paths.add_hline(y=current_price, line_dash="dash", line_color="#c62828",
                             annotation_text="Current Price", annotation_position="bottom right")
         fig_paths.update_layout(
@@ -474,7 +354,7 @@ def show_analysis():
         st.warning("Not enough historical data for probabilistic simulation (need at least 10 days).")
 
     # ------------------------------------------------------------
-    # Historical Price Distribution (Histograms)
+    # Historical Price Distribution
     # ------------------------------------------------------------
     st.markdown("---")
     st.markdown("## 📊 Historical Price Distribution")
@@ -483,7 +363,6 @@ def show_analysis():
         with tab:
             if not df.empty:
                 prices = df['Close']
-                # Statistics
                 mean_price = prices.mean()
                 median_price = prices.median()
                 min_price = prices.min()
@@ -492,7 +371,6 @@ def show_analysis():
                 skew = prices.skew()
                 kurt = prices.kurtosis()
 
-                # Histogram
                 n_bins = optimal_bins(prices)
                 hist, bin_edges = np.histogram(prices, bins=n_bins)
                 colors = []
@@ -534,7 +412,6 @@ def show_analysis():
                 )
                 st.plotly_chart(fig, use_container_width=True)
 
-                # Stats in a dataframe
                 stats_df = pd.DataFrame({
                     "Metric": ["Mean", "Median", "Min", "Max", "Std Dev", "Skewness", "Kurtosis"],
                     "Value": [
@@ -550,7 +427,7 @@ def show_analysis():
                 st.dataframe(stats_df, use_container_width=True, hide_index=True)
 
     # ------------------------------------------------------------
-    # Advanced Indicators (future-centric)
+    # Advanced Indicators
     # ------------------------------------------------------------
     if '5 Years' in historical:
         st.markdown("---")
@@ -592,14 +469,12 @@ def show_analysis():
         fig_adv.update_yaxes(title_text="MACD", row=3, col=1)
         st.plotly_chart(fig_adv, use_container_width=True)
 
-    # ------------------------------------------------------------
     # Footer
-    # ------------------------------------------------------------
     st.markdown("---")
     st.markdown("""
     <div class="footer">
-        <p>📊 FinTech Analytics Pro | Designed by <b>Mamoor Hayat</b></p>
-        <p style="font-size:0.8rem; color:#5c6bc0;">© 2026 All Rights Reserved | Data from Yahoo Finance | Not financial advice</p>
+        <p>📊 FinTech Analytics Pro | Designed with ❤️ by <b>Mamoor Hayat</b></p>
+        <p style="font-size:0.8rem; color:#5c6bc0;">© 2024 All Rights Reserved | Data from Yahoo Finance | Not financial advice</p>
     </div>
     """, unsafe_allow_html=True)
 
