@@ -1,7 +1,7 @@
 """
 FinTech Analytics Pro – Future‑Centric Edition
 Designed by Mamoor Hayat
-Copyright © 2024 All Rights Reserved
+© 2024 All Rights Reserved
 """
 
 import streamlit as st
@@ -25,7 +25,7 @@ st.set_page_config(
 )
 
 # ------------------------------------------------------------
-# Custom CSS – Clean, High Contrast
+# Custom CSS
 # ------------------------------------------------------------
 st.markdown("""
 <style>
@@ -62,6 +62,17 @@ st.markdown("""
     .prob-low { background: #fce8e8; border-left: 6px solid #b33c3c; padding: 1.2rem; border-radius: 16px; color: #000000; }
     .footer { text-align: center; padding: 1.5rem; background: #e8edf9; border-radius: 20px; margin-top: 2rem; color: #000000; }
     .badge { background: #2a4b7c; color: white; padding: 0.2rem 0.8rem; border-radius: 30px; font-size: 0.7rem; font-weight: 600; display: inline-block; }
+    .guide-section {
+        background: white;
+        padding: 2rem;
+        border-radius: 20px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+        margin-top: 2rem;
+        border-left: 6px solid #d98c2b;
+        color: #000000;
+    }
+    .guide-section h3 { color: #000000; }
+    .guide-section p, .guide-section li { color: #000000; }
     @media (max-width: 768px) {
         .landing-header h1 { font-size: 2.4rem; }
     }
@@ -74,7 +85,9 @@ st.markdown("""
 if 'symbol' not in st.session_state:
     st.session_state.symbol = None
 if 'chart_mode' not in st.session_state:
-    st.session_state.chart_mode = 'Classic'  # or 'Institutional'
+    st.session_state.chart_mode = 'Classic'
+if 'forecast_years' not in st.session_state:
+    st.session_state.forecast_years = 10
 
 # ------------------------------------------------------------
 # Helper Functions
@@ -96,24 +109,13 @@ def fetch_data(symbol, periods_days):
     except:
         return None, None
 
-def monte_carlo_with_regime(returns, current_price, n_sim=10000, regime='normal'):
-    """
-    Monte Carlo simulation with regime‑aware volatility.
-    Regimes: 'normal' (historical sigma), 'high' (2x sigma), 'low' (0.5x sigma).
-    """
+def monte_carlo_fixed_horizon(returns, current_price, years, n_sim=10000):
+    """Monte Carlo for a user‑specified number of years."""
     mu = returns.mean()
-    sigma = returns.std()
-    # Adjust sigma based on regime
-    if regime == 'high':
-        sigma_adj = sigma * 2.0
-    elif regime == 'low':
-        sigma_adj = sigma * 0.5
-    else:
-        sigma_adj = sigma * 0.9  # slight shrinkage
-
+    sigma = returns.std() * 0.9  # shrinkage
     dt = 1/252
-    total_days = 252  # 1 year
-    log_returns = np.random.normal(mu - 0.5 * sigma_adj**2, sigma_adj,
+    total_days = int(years * 252)
+    log_returns = np.random.normal(mu - 0.5 * sigma**2, sigma,
                                    size=(total_days, n_sim))
     cum_log = np.cumsum(log_returns, axis=0)
     paths = current_price * np.exp(cum_log)
@@ -122,48 +124,21 @@ def monte_carlo_with_regime(returns, current_price, n_sim=10000, regime='normal'
     expected_return = np.mean(final / current_price - 1) * 100
     var_95 = current_price - np.percentile(final, 5)
     cvar_95 = current_price - np.mean(final[final <= np.percentile(final, 5)])
-    return {
-        'prob_profit': prob_profit,
-        'expected_return': expected_return,
-        'var_95': var_95,
-        'cvar_95': cvar_95,
-        'paths': paths
-    }
-
-def monte_carlo_10y(returns, current_price, n_sim=10000):
-    """Simulate 10 years and return monthly probabilities and key stats."""
-    mu = returns.mean()
-    sigma = returns.std() * 0.9  # shrinkage
-    dt = 1/252
-    total_days = 2520
-    log_returns = np.random.normal(mu - 0.5 * sigma**2, sigma,
-                                   size=(total_days, n_sim))
-    cum_log = np.cumsum(log_returns, axis=0)
-    paths = current_price * np.exp(cum_log)
-    final = paths[-1, :]
-    # Monthly probabilities (every 21 days)
+    # Monthly probabilities (every 21 days) but only up to 120 months for clarity
     month_indices = np.arange(21, total_days+1, 21)
     monthly_probs = []
     for idx in month_indices:
         prices_at_month = paths[idx-1, :]
         prob = np.mean(prices_at_month > current_price)
         monthly_probs.append(prob)
-    # Horizon probabilities
-    horizon_days = [252, 756, 1260, 2520]
-    horizon_probs = {}
-    for h in horizon_days:
-        if h <= total_days:
-            prices_at_h = paths[h-1, :]
-            horizon_probs[f"{h//252}Y"] = np.mean(prices_at_h > current_price)
-    expected_return = np.mean(final / current_price - 1) * 100
-    var_95 = current_price - np.percentile(final, 5)
     return {
+        'prob_profit': prob_profit,
+        'expected_return': expected_return,
+        'var_95': var_95,
+        'cvar_95': cvar_95,
         'paths': paths,
         'monthly_probs': monthly_probs,
-        'month_indices': month_indices,
-        'horizon_probs': horizon_probs,
-        'expected_return': expected_return,
-        'var_95': var_95
+        'month_indices': month_indices
     }
 
 def regime_classification(prices, window=50):
@@ -347,14 +322,16 @@ def show_analysis():
         '2 Years': 730,
         '3 Years': 1095,
         '4 Years': 1460,
-        '5 Years': 1825
+        '5 Years': 1825,
+        '10 Years': 3650,   # for completeness
+        '20 Years': 7300
     }
     data, info = fetch_data(symbol, periods)
     if data is None or not data:
         st.error("Could not fetch data. Please check symbol.")
         return
 
-    # Use longest available period
+    # Use longest available period for main analysis (prefer 5 years)
     main_df = None
     for period in ['5 Years', '4 Years', '3 Years', '2 Years', '1 Year']:
         if period in data and not data[period].empty:
@@ -411,7 +388,7 @@ def show_analysis():
         """, unsafe_allow_html=True)
 
     # ------------------------------------------------------------
-    # Future‑Centric Forecast (Monte Carlo + Scenario)
+    # Check data sufficiency
     # ------------------------------------------------------------
     if len(main_df) < 50:
         st.warning("Insufficient data (need at least 50 days).")
@@ -420,28 +397,33 @@ def show_analysis():
     prices = main_df['Close']
     returns = prices.pct_change().dropna()
 
+    # ------------------------------------------------------------
+    # User Controls: Forecast Horizon
+    # ------------------------------------------------------------
     st.markdown("---")
-    st.markdown("## 🔮 10‑Year Probabilistic Forecast")
+    st.markdown("## 🎯 Custom Forecast Horizon")
+    forecast_years = st.slider(
+        "Select forecast period (years)",
+        min_value=1, max_value=20, value=10, step=1,
+        help="Choose how many years ahead you want to simulate."
+    )
+    st.session_state.forecast_years = forecast_years
 
-    # Monte Carlo for 10 years
-    mc_10y = monte_carlo_10y(returns, current_price, n_sim=10000)
+    # Run Monte Carlo for selected horizon
+    mc = monte_carlo_fixed_horizon(returns, current_price, forecast_years, n_sim=10000)
 
-    # Show horizon probabilities
-    col_h1, col_h2, col_h3, col_h4 = st.columns(4)
-    col_h1.metric("1‑Year Profit Prob", f"{mc_10y['horizon_probs'].get('1Y', 0)*100:.1f}%")
-    col_h2.metric("3‑Year Profit Prob", f"{mc_10y['horizon_probs'].get('3Y', 0)*100:.1f}%")
-    col_h3.metric("5‑Year Profit Prob", f"{mc_10y['horizon_probs'].get('5Y', 0)*100:.1f}%")
-    col_h4.metric("10‑Year Profit Prob", f"{mc_10y['horizon_probs'].get('10Y', 0)*100:.1f}%")
-
-    st.metric("Expected Return (10Y)", f"{mc_10y['expected_return']:.2f}%")
-    st.metric("VaR (95%) 10Y", f"{format_currency(mc_10y['var_95'])}")
+    # Display key metrics
+    col_h1, col_h2, col_h3 = st.columns(3)
+    col_h1.metric(f"Probability of Profit ({forecast_years}Y)", f"{mc['prob_profit']*100:.1f}%")
+    col_h2.metric(f"Expected Return ({forecast_years}Y)", f"{mc['expected_return']:.2f}%")
+    col_h3.metric(f"VaR (95%) {forecast_years}Y", f"{format_currency(mc['var_95'])}")
 
     # Monthly probability chart
-    months = np.arange(1, len(mc_10y['monthly_probs'])+1)
+    months = np.arange(1, len(mc['monthly_probs'])+1)
     fig_prob = go.Figure()
     fig_prob.add_trace(go.Scatter(
         x=months,
-        y=np.array(mc_10y['monthly_probs'])*100,
+        y=np.array(mc['monthly_probs'])*100,
         mode='lines+markers',
         name='Profit Probability',
         line=dict(color='#2a4b7c', width=2),
@@ -449,7 +431,7 @@ def show_analysis():
     ))
     fig_prob.add_hline(y=50, line_dash="dash", line_color="#b33c3c", annotation_text="50% Threshold")
     fig_prob.update_layout(
-        title="Monthly Probability of Being Above Current Price (Next 10 Years)",
+        title=f"Monthly Probability of Being Above Current Price (Next {forecast_years} Years)",
         xaxis_title="Month",
         yaxis_title="Probability (%)",
         template="plotly_white",
@@ -458,19 +440,19 @@ def show_analysis():
     )
     st.plotly_chart(fig_prob, use_container_width=True)
 
-    # Recommendation based on 1‑year probability
-    prob_1y = mc_10y['horizon_probs'].get('1Y', 0)
-    if prob_1y > 0.60:
+    # Recommendation based on probability
+    prob = mc['prob_profit']
+    if prob > 0.60:
         rec_class = "prob-high"
-        rec_text = "✅ BUY – High probability of positive return (1Y)"
+        rec_text = f"✅ BUY – High probability of positive return ({forecast_years}Y)"
         rec_detail = "Strong upside potential with moderate risk."
-    elif prob_1y > 0.45:
+    elif prob > 0.45:
         rec_class = "prob-medium"
-        rec_text = "⚖️ HOLD – Moderate probability (1Y)"
+        rec_text = f"⚖️ HOLD – Moderate probability ({forecast_years}Y)"
         rec_detail = "Uncertainty is high; wait for clearer signals."
     else:
         rec_class = "prob-low"
-        rec_text = "❌ DON'T BUY – Low probability of profit (1Y)"
+        rec_text = f"❌ DON'T BUY – Low probability of profit ({forecast_years}Y)"
         rec_detail = "Downside risk outweighs upside potential."
 
     st.markdown(f"""
@@ -481,35 +463,49 @@ def show_analysis():
     """, unsafe_allow_html=True)
 
     # ------------------------------------------------------------
-    # Scenario Analysis (Interactive)
+    # Monthly Price History (Last 5 Years)
     # ------------------------------------------------------------
-    st.markdown("### 🧪 What‑If Scenario Analysis")
+    st.markdown("---")
+    st.markdown("## 📅 Monthly Price History (Last 5 Years)")
 
-    col_s1, col_s2 = st.columns(2)
-    with col_s1:
-        expected_return_adj = st.slider("Adjust Expected Return (annual %)", -20.0, 20.0, 0.0, step=0.5, help="Override the historical average return assumption.")
-    with col_s2:
-        volatility_adj = st.selectbox("Volatility Regime", ["Normal", "High (2x)", "Low (0.5x)"], help="Simulate different market volatility environments.")
+    # Get 5‑year data if available
+    five_year_data = data.get('5 Years', None)
+    if five_year_data is not None:
+        # Resample to month-end
+        monthly = five_year_data['Close'].resample('ME').last()
+        # Create chart
+        fig_monthly = go.Figure()
+        fig_monthly.add_trace(go.Scatter(
+            x=monthly.index,
+            y=monthly,
+            mode='lines+markers',
+            name='Monthly Close',
+            line=dict(color='#2a4b7c', width=2),
+            marker=dict(size=6)
+        ))
+        fig_monthly.add_hline(y=current_price, line_dash="dash", line_color="#b33c3c",
+                              annotation_text="Current Price", annotation_position="bottom right")
+        fig_monthly.update_layout(
+            title="Month‑End Closing Prices (5 Years)",
+            xaxis_title="Date",
+            yaxis_title="Price ($)",
+            template="plotly_white",
+            height=400,
+            hovermode="x"
+        )
+        st.plotly_chart(fig_monthly, use_container_width=True)
 
-    # Run Monte Carlo with user adjustments
-    if expected_return_adj != 0 or volatility_adj != 'Normal':
-        regime_map = {'Normal': 'normal', 'High (2x)': 'high', 'Low (0.5x)': 'low'}
-        mc_adj = monte_carlo_with_regime(returns, current_price, n_sim=10000, regime=regime_map[volatility_adj])
-        # Adjust expected return by shifting drift
-        # (We'll just display the probability and return; for simplicity we re-run with adjusted mu)
-        # We'll recompute by modifying the returns series mean artificially:
-        returns_adj = returns + expected_return_adj/100/252  # approximate daily adjustment
-        mc_adj = monte_carlo_with_regime(returns_adj, current_price, n_sim=10000, regime=regime_map[volatility_adj])
-        st.write(f"**Scenario Results:**")
-        st.metric("Probability of Profit (1Y)", f"{mc_adj['prob_profit']*100:.1f}%")
-        st.metric("Expected Return (1Y)", f"{mc_adj['expected_return']:.2f}%")
-        st.metric("VaR (95%) 1Y", f"{format_currency(mc_adj['var_95'])}")
-        st.caption("These results reflect your custom assumptions. Compare with the baseline forecast above.")
+        # Show as table
+        st.dataframe(
+            monthly.reset_index().rename(columns={'index': 'Date', 'Close': 'Price'}),
+            use_container_width=True,
+            hide_index=True
+        )
     else:
-        st.info("Adjust the sliders above to see how different assumptions affect the forecast.")
+        st.info("5‑year data not available for this symbol.")
 
     # ------------------------------------------------------------
-    # Institutional Indicators Toggle
+    # Advanced Technical Analysis (Classic / Institutional toggle)
     # ------------------------------------------------------------
     st.markdown("---")
     st.markdown("## 📊 Advanced Technical Analysis")
@@ -698,43 +694,44 @@ def show_analysis():
     st.markdown("## 📊 Historical Price Distribution")
     tabs = st.tabs(["1 Year", "2 Years", "3 Years", "4 Years", "5 Years"])
     for tab, (name, df) in zip(tabs, data.items()):
-        with tab:
-            if not df.empty:
-                prices_t = df['Close']
-                n_bins = min(30, max(5, len(prices_t)//10+1))
-                fig_hist = go.Figure()
-                fig_hist.add_trace(go.Histogram(
-                    x=prices_t,
-                    nbinsx=n_bins,
-                    marker_color='#2a4b7c',
-                    opacity=0.7,
-                    name='Distribution'
-                ))
-                fig_hist.add_vline(x=current_price, line_dash='dash', line_color='#b33c3c',
-                                   annotation_text="Current", annotation_position="top")
-                fig_hist.update_layout(
-                    title=f"{name} – Price Distribution",
-                    xaxis_title="Price ($)",
-                    yaxis_title="Frequency",
-                    template="plotly_white",
-                    height=300,
-                    bargap=0.05
-                )
-                st.plotly_chart(fig_hist, use_container_width=True)
+        if name in ['1 Year', '2 Years', '3 Years', '4 Years', '5 Years']:
+            with tab:
+                if not df.empty:
+                    prices_t = df['Close']
+                    n_bins = min(30, max(5, len(prices_t)//10+1))
+                    fig_hist = go.Figure()
+                    fig_hist.add_trace(go.Histogram(
+                        x=prices_t,
+                        nbinsx=n_bins,
+                        marker_color='#2a4b7c',
+                        opacity=0.7,
+                        name='Distribution'
+                    ))
+                    fig_hist.add_vline(x=current_price, line_dash='dash', line_color='#b33c3c',
+                                       annotation_text="Current", annotation_position="top")
+                    fig_hist.update_layout(
+                        title=f"{name} – Price Distribution",
+                        xaxis_title="Price ($)",
+                        yaxis_title="Frequency",
+                        template="plotly_white",
+                        height=300,
+                        bargap=0.05
+                    )
+                    st.plotly_chart(fig_hist, use_container_width=True)
 
-                stats_df = pd.DataFrame({
-                    "Metric": ["Mean", "Median", "Min", "Max", "Std Dev", "Skewness", "Kurtosis"],
-                    "Value": [
-                        format_currency(prices_t.mean()),
-                        format_currency(prices_t.median()),
-                        format_currency(prices_t.min()),
-                        format_currency(prices_t.max()),
-                        format_currency(prices_t.std()),
-                        f"{prices_t.skew():.2f}",
-                        f"{prices_t.kurtosis():.2f}"
-                    ]
-                })
-                st.dataframe(stats_df, use_container_width=True, hide_index=True)
+                    stats_df = pd.DataFrame({
+                        "Metric": ["Mean", "Median", "Min", "Max", "Std Dev", "Skewness", "Kurtosis"],
+                        "Value": [
+                            format_currency(prices_t.mean()),
+                            format_currency(prices_t.median()),
+                            format_currency(prices_t.min()),
+                            format_currency(prices_t.max()),
+                            format_currency(prices_t.std()),
+                            f"{prices_t.skew():.2f}",
+                            f"{prices_t.kurtosis():.2f}"
+                        ]
+                    })
+                    st.dataframe(stats_df, use_container_width=True, hide_index=True)
 
     # ------------------------------------------------------------
     # Download Data
@@ -761,36 +758,60 @@ def show_analysis():
         )
 
     # ------------------------------------------------------------
-    # Educational Expander
+    # Comprehensive Guide (Educational Section)
     # ------------------------------------------------------------
-    with st.expander("🧠 Methodology & Theoretical Foundation (Click to expand)"):
+    st.markdown("---")
+    with st.expander("📖 Guide – Learn About Every Analysis (Click to Expand)", expanded=False):
         st.markdown("""
-        **1. Monte Carlo Simulation (10‑Year Monthly)**  
-        We simulate 10,000 future daily price paths using Geometric Brownian Motion with drift and volatility estimated from historical returns. Bayesian shrinkage reduces overfitting. Monthly probabilities are computed by checking the percentage of paths that end each month above today's price.
+        <div class="guide-section">
+        <h3>📘 Welcome to Your Financial Learning Center</h3>
+        <p>This guide explains every part of this app in simple, plain English. No finance background required.</p>
+        <hr>
 
-        **2. Scenario Analysis**  
-        Users can adjust expected return and volatility assumptions to see how the forecast changes – a practical application of stress‑testing.
+        <h4>1. What is Monte Carlo Simulation?</h4>
+        <p><b>Think of it like this:</b> Instead of making one guess about the future, we run thousands of "what‑if" scenarios. We take the asset's past volatility and average return, then simulate many possible future paths. The result is a probability – not a certainty. For example, if we say "60% chance of profit", it means that in 6 out of 10 simulated futures, the price ended higher than today.</p>
+        <p><b>Why it matters:</b> It helps you prepare for different outcomes, not just the most likely one.</p>
 
-        **3. Institutional Indicators**  
-        - **Keltner Channels** – volatility‑based envelope using ATR; smoother than Bollinger.  
-        - **Money Flow Index (MFI)** – volume‑weighted RSI; captures buying/selling conviction.  
-        - **Accumulation/Distribution Line** – cumulative money flow; reveals smart money activity.  
-        - **Chaikin Oscillator** – momentum of money flow; early warning of regime shifts.
+        <h4>2. Forecast Horizon (1–20 Years)</h4>
+        <p>You can choose how far ahead you want to look. Longer horizons tend to have higher uncertainty, so the probability range widens. The app shows you the probability of being above today's price at each month in that horizon.</p>
 
-        **4. Risk Metrics**  
-        - **VaR / CVaR** – worst‑case losses at given confidence levels.  
-        - **Sortino Ratio** – return per unit of downside deviation.  
-        - **Calmar Ratio** – return divided by max drawdown.  
-        - **Beta** – market sensitivity vs. S&P 500.
+        <h4>3. Monthly Price History</h4>
+        <p>This shows the asset’s closing price at the end of each month for the last 5 years. It helps you see long‑term trends, support/resistance levels, and how the price has behaved in different economic conditions.</p>
 
-        **5. Regime Detection**  
-        Based on rolling z‑scores: Bullish (>0.5σ above mean), Bearish (<‑0.5σ), Range‑bound.
+        <h4>4. Technical Charts – Classic vs. Institutional</h4>
+        <ul>
+        <li><b>Classic:</b> Bollinger Bands (volatility), RSI (overbought/oversold), MACD (momentum). These are the most popular tools for traders.</li>
+        <li><b>Institutional:</b> Keltner Channels (trend‑based volatility), Money Flow Index (volume‑weighted momentum), Accumulation/Distribution (smart money flow), Chaikin Oscillator (momentum of money flow). These are used by hedge funds and professional traders.</li>
+        </ul>
 
-        **6. Kelly Criterion**  
-        Optimal fraction of capital to bet, derived from the win rate and average win/loss of a 50/200‑day MA crossover.
+        <h4>5. Risk Dashboard</h4>
+        <ul>
+        <li><b>Volatility:</b> How much the price swings. Higher = riskier.</li>
+        <li><b>Max Drawdown:</b> The worst peak‑to‑trough decline in the period.</li>
+        <li><b>Sortino Ratio:</b> Return per unit of downside risk – higher is better.</li>
+        <li><b>Calmar Ratio:</b> Return divided by max drawdown – measures recovery ability.</li>
+        <li><b>VaR (Value at Risk):</b> The worst loss you can expect with 95% or 99% confidence.</li>
+        <li><b>CVaR (Expected Shortfall):</b> The average loss beyond VaR – gives a fuller picture of tail risk.</li>
+        <li><b>Beta:</b> How much the asset moves with the S&P 500. Beta >1 means it's more volatile than the market; <1 means less.</li>
+        </ul>
 
-        All calculations are performed on‑the‑fly using only free data from Yahoo Finance.
-        """)
+        <h4>6. Regime Classification</h4>
+        <p>We compare the current price to its recent range. If it's more than half a standard deviation above the mean, we call it "Bullish". Below: "Bearish". Otherwise: "Range‑bound". This helps you understand the broader market environment.</p>
+
+        <h4>7. Kelly Criterion</h4>
+        <p>This is a mathematical formula that tells you the optimal fraction of your capital to bet on a trade. It's based on the win rate and average win/loss of a simple moving‑average strategy. It's a risk‑management tool – not a guarantee, but a guide.</p>
+
+        <h4>8. Strategy Backtest</h4>
+        <p>We test a simple 50/200‑day moving average crossover strategy on historical data. The equity curve shows how it would have performed. This gives you a sense of whether trend‑following has worked for this asset.</p>
+
+        <h4>9. Historical Price Distribution</h4>
+        <p>Histograms show how often the price was in each range. The current price is marked. This helps you see if the price is historically high, low, or average.</p>
+
+        <hr>
+        <p><b>Remember:</b> All analysis is based on historical data. Past performance does not guarantee future results. Always do your own research and consult a financial advisor before making investment decisions.</p>
+        <p style="font-size:0.9rem; color:#6b7a99;">This app is for educational and informational purposes only.</p>
+        </div>
+        """, unsafe_allow_html=True)
 
     # Footer
     st.markdown("---")
