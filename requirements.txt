@@ -1,8 +1,6 @@
 streamlit
 yfinance
-plotly
 pandas
 numpy
-anthropic
-requests
-feedparser
+plotly
+scipy
