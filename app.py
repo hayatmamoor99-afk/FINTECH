@@ -1,5 +1,5 @@
 """
-FinTech Analytics Pro – Final Edition
+FinTech Analytics Pro – Final Edition (UI & Guide Enhanced)
 Designed by Mamoor Hayat
 © 2024 All Rights Reserved
 """
@@ -83,6 +83,50 @@ st.markdown("""
         font-size: 0.95rem;
     }
     .insight-box strong { color: #0b1a3a; }
+    .back-home-btn {
+        display: block;
+        width: 100%;
+        padding: 0.8rem;
+        background: #2a4b7c;
+        color: white;
+        border: none;
+        border-radius: 30px;
+        font-size: 1.2rem;
+        font-weight: 600;
+        text-align: center;
+        margin-bottom: 1rem;
+        cursor: pointer;
+        transition: 0.2s;
+        box-shadow: 0 4px 12px rgba(42,75,124,0.2);
+    }
+    .back-home-btn:hover {
+        background: #1b3a6a;
+        transform: scale(1.02);
+    }
+    .qa-box {
+        background: #f8faff;
+        padding: 1.5rem;
+        border-radius: 16px;
+        border: 1px solid #e0e7ff;
+        margin-top: 1.5rem;
+    }
+    .qa-box input {
+        width: 100%;
+        padding: 0.8rem;
+        border: 2px solid #c5cae9;
+        border-radius: 30px;
+        font-size: 1rem;
+        outline: none;
+    }
+    .qa-box input:focus { border-color: #2a4b7c; }
+    .qa-answer {
+        background: white;
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        margin-top: 1rem;
+        border-left: 4px solid #d98c2b;
+        color: #000000;
+    }
     @media (max-width: 768px) {
         .landing-header h1 { font-size: 2.4rem; }
     }
@@ -98,6 +142,8 @@ if 'chart_mode' not in st.session_state:
     st.session_state.chart_mode = 'Classic'
 if 'forecast_years' not in st.session_state:
     st.session_state.forecast_years = 10
+if 'qa_question' not in st.session_state:
+    st.session_state.qa_question = ""
 
 # ------------------------------------------------------------
 # Helper Functions
@@ -270,6 +316,35 @@ def format_market_cap(value):
         return f"${value:,.0f}"
 
 # ------------------------------------------------------------
+# Q&A Knowledge Base
+# ------------------------------------------------------------
+qa_knowledge = {
+    "rsi": "RSI (Relative Strength Index) measures the speed and change of price movements. It ranges from 0 to 100. Values above 70 indicate overbought (price may fall), below 30 indicate oversold (price may rise). It's a momentum oscillator – helpful for spotting reversals.",
+    "macd": "MACD (Moving Average Convergence Divergence) shows the relationship between two exponential moving averages (typically 12‑day and 26‑day). When the MACD line crosses above its signal line, it's bullish; crossing below is bearish. The histogram shows the gap between the two – positive histogram = bullish momentum.",
+    "bollinger": "Bollinger Bands consist of a middle band (20‑day SMA) and two outer bands at ±2 standard deviations. When price touches the upper band, it may be overbought; touching the lower band, oversold. Narrow bands signal low volatility, often preceding a breakout.",
+    "keltner": "Keltner Channels are similar to Bollinger but use Average True Range (ATR) for bandwidth, making them smoother. They are better for trending markets. Price breaking above the upper channel suggests strong bullish momentum, below the lower channel suggests bearish.",
+    "mfi": "MFI (Money Flow Index) is a volume‑weighted RSI – it incorporates both price and volume. Overbought >80, oversold <20. It can show divergence (price making new high but MFI making lower high) – a warning of weakening buying pressure.",
+    "accumulation distribution": "The Accumulation/Distribution Line measures cumulative money flow. A rising line indicates accumulation (smart money buying), a falling line indicates distribution (selling). Divergence with price often signals reversals.",
+    "chaikin": "The Chaikin Oscillator measures the momentum of the Accumulation/Distribution Line. It's the difference between 3‑day and 10‑day EMAs of the A/D Line. Crossing above zero signals bullish money flow momentum, below zero bearish.",
+    "var": "Value at Risk (VaR) is a statistical measure of the maximum loss you can expect over a given period with a certain confidence level (e.g., 95%). A 95% VaR of -10% means there is a 5% chance of losing more than 10%.",
+    "cvar": "Conditional Value at Risk (CVaR), also known as Expected Shortfall, is the average loss beyond the VaR threshold. It gives a fuller picture of tail risk – the average loss in the worst 5% of cases.",
+    "sortino": "The Sortino Ratio measures return per unit of downside deviation – it only penalises negative volatility. A higher Sortino ratio indicates better risk‑adjusted returns, focusing on losses rather than total volatility.",
+    "calmar": "The Calmar Ratio is the annualised return divided by the maximum drawdown. It measures how well the asset recovers from losses – higher is better.",
+    "beta": "Beta measures an asset's sensitivity to market movements (relative to S&P 500). Beta > 1 means the asset is more volatile than the market; < 1 means less volatile. It helps understand systemic risk.",
+    "kelly": "The Kelly Criterion is a formula that suggests the optimal fraction of capital to bet on a trade, based on historical win rate and average win/loss ratio. It's a risk‑management tool – many traders use a fraction of Kelly (e.g., half‑Kelly) for safety.",
+    "monte carlo": "Monte Carlo simulation runs thousands of random 'what‑if' scenarios to estimate the range of future outcomes. It uses historical returns (average and volatility) to generate many possible price paths. The result is a probability, not a certainty.",
+    "regime": "Regime classification identifies the current market condition. Bullish means the price is significantly above its recent average; Bearish means below; Range‑bound means it's moving sideways. It helps contextualise trading decisions.",
+    "drawdown": "Maximum Drawdown is the largest peak‑to‑trough decline over the period. It's a key measure of downside risk – the worst loss you would have experienced if you bought at the peak and sold at the trough."
+}
+
+def get_qa_answer(question):
+    question_lower = question.lower().strip()
+    for key, answer in qa_knowledge.items():
+        if key in question_lower:
+            return answer
+    return "I don't have a specific answer for that, but feel free to ask about RSI, MACD, Bollinger, Keltner, MFI, A/D, Chaikin, VaR, CVaR, Sortino, Calmar, Beta, Kelly, Monte Carlo, Regime, or Drawdown."
+
+# ------------------------------------------------------------
 # UI Pages
 # ------------------------------------------------------------
 
@@ -318,7 +393,15 @@ def show_landing():
 
 def show_analysis():
     symbol = st.session_state.symbol
-    if st.button("← Back to Home"):
+
+    # --- Prominent BACK TO HOME button ---
+    st.markdown(f"""
+    <button class="back-home-btn" onclick="window.location.reload()">
+        🏠 Back to Home
+    </button>
+    """, unsafe_allow_html=True)
+    # Actually, we'll use a Streamlit button with a key for proper rerun
+    if st.button("🏠 Back to Home", key="back_home", use_container_width=True):
         st.session_state.symbol = None
         st.rerun()
 
@@ -448,7 +531,6 @@ def show_analysis():
     )
     st.plotly_chart(fig_prob, use_container_width=True)
 
-    # Insight after forecast chart
     st.markdown("""
     <div class="insight-box">
         <strong>📘 What this tells you:</strong> This chart shows the probability that the price will be higher than today at each month in the future. 
@@ -538,43 +620,51 @@ def show_analysis():
                     st.write("No data for this year.")
                     continue
 
+                # Separate charts to avoid overlap
+                st.markdown(f"#### Monthly Prices – {year}")
                 monthly_year = year_data['Close'].resample('ME').last()
-                fig_year = make_subplots(
-                    rows=2, cols=1,
-                    shared_xaxes=False,
-                    vertical_spacing=0.15,
-                    row_heights=[0.6, 0.4],
-                    subplot_titles=(f"Monthly Prices – {year}", f"Daily Price Distribution – {year}")
-                )
-                fig_year.add_trace(go.Scatter(
+                fig_line = go.Figure()
+                fig_line.add_trace(go.Scatter(
                     x=monthly_year.index,
                     y=monthly_year,
                     mode='lines+markers',
                     name='Monthly Close',
                     line=dict(color='#2a4b7c', width=2),
                     marker=dict(size=8, color='#2a4b7c')
-                ), row=1, col=1)
-                fig_year.add_hline(y=current_price, line_dash="dash", line_color="#b33c3c",
-                                   annotation_text="Current Price", annotation_position="bottom right",
-                                   row=1, col=1)
+                ))
+                fig_line.add_hline(y=current_price, line_dash="dash", line_color="#b33c3c",
+                                   annotation_text="Current Price", annotation_position="bottom right")
+                fig_line.update_layout(
+                    height=300,
+                    template="plotly_white",
+                    xaxis_title="Date",
+                    yaxis_title="Price ($)",
+                    showlegend=False
+                )
+                st.plotly_chart(fig_line, use_container_width=True)
+
+                st.markdown(f"#### Daily Price Distribution – {year}")
                 daily_prices = year_data['Close']
                 n_bins = min(20, max(5, len(daily_prices)//8+1))
-                fig_year.add_trace(go.Histogram(
+                fig_hist = go.Figure()
+                fig_hist.add_trace(go.Histogram(
                     x=daily_prices,
                     nbinsx=n_bins,
                     marker_color='#2a4b7c',
                     opacity=0.7,
                     name='Daily Distribution'
-                ), row=2, col=1)
-                fig_year.add_vline(x=current_price, line_dash="dash", line_color="#b33c3c",
-                                   annotation_text="Current", annotation_position="top",
-                                   row=2, col=1)
-                fig_year.update_layout(height=500, template="plotly_white", showlegend=False)
-                fig_year.update_xaxes(title_text="Date", row=1, col=1)
-                fig_year.update_yaxes(title_text="Price ($)", row=1, col=1)
-                fig_year.update_xaxes(title_text="Price ($)", row=2, col=1)
-                fig_year.update_yaxes(title_text="Frequency", row=2, col=1)
-                st.plotly_chart(fig_year, use_container_width=True)
+                ))
+                fig_hist.add_vline(x=current_price, line_dash="dash", line_color="#b33c3c",
+                                   annotation_text="Current", annotation_position="top")
+                fig_hist.update_layout(
+                    height=300,
+                    template="plotly_white",
+                    xaxis_title="Price ($)",
+                    yaxis_title="Frequency",
+                    bargap=0.05,
+                    showlegend=False
+                )
+                st.plotly_chart(fig_hist, use_container_width=True)
 
                 st.markdown(f"""
                 <div class="insight-box">
@@ -904,34 +994,10 @@ def show_analysis():
                     """, unsafe_allow_html=True)
 
     # ------------------------------------------------------------
-    # Download Data
+    # Comprehensive Guide (Educational Section) with Q&A
     # ------------------------------------------------------------
     st.markdown("---")
-    st.markdown("### 📥 Export Data")
-    if st.button("Download Full Analysis (CSV)"):
-        df_export = main_df[['Close', 'Volume']].copy()
-        df_export['Returns'] = returns
-        if len(main_df) > 50:
-            df_export['SMA20'] = sma20
-            df_export['SMA50'] = sma50
-            df_export['SMA200'] = sma200
-            df_export['RSI'] = rsi
-            df_export['MACD'] = macd
-            df_export['Signal'] = signal
-            df_export['Hist'] = hist
-        csv = df_export.to_csv()
-        st.download_button(
-            label="Download CSV",
-            data=csv,
-            file_name=f"{symbol}_analysis.csv",
-            mime="text/csv"
-        )
-
-    # ------------------------------------------------------------
-    # Comprehensive Guide (Educational Section)
-    # ------------------------------------------------------------
-    st.markdown("---")
-    with st.expander("📖 Complete Guide – Learn Every Technique (Click to Expand)", expanded=False):
+    with st.expander("📖 Complete Guide & Ask the Assistant (Click to Expand)", expanded=False):
         st.markdown("""
         <div class="guide-section">
         <h3>📘 Financial Education Center</h3>
@@ -983,6 +1049,19 @@ def show_analysis():
         <p><b>Disclaimer:</b> All analysis is based on historical data and is for educational purposes only. Past performance does not guarantee future results. Always conduct your own research and consult a financial advisor before making investment decisions.</p>
         </div>
         """, unsafe_allow_html=True)
+
+        # --- Interactive Q&A Assistant ---
+        st.markdown("### 💬 Ask the Assistant")
+        st.markdown("Type a question about any indicator or metric (e.g., 'What is RSI?')")
+        q_input = st.text_input("Your question:", key="qa_input", placeholder="e.g., What is MACD?")
+        if q_input:
+            answer = get_qa_answer(q_input)
+            st.markdown(f"""
+            <div class="qa-answer">
+                <strong>🤖 Assistant:</strong> {answer}
+            </div>
+            """, unsafe_allow_html=True)
+            st.caption("Try asking about: RSI, MACD, Bollinger, Keltner, MFI, Accumulation/Distribution, Chaikin, VaR, CVaR, Sortino, Calmar, Beta, Kelly, Monte Carlo, Regime, Drawdown.")
 
     # Footer
     st.markdown("---")
