@@ -1,5 +1,5 @@
 """
-FinTech Analytics Pro – Future‑Centric Edition
+FinTech Analytics Pro – Final Edition
 Designed by Mamoor Hayat
 © 2024 All Rights Reserved
 """
@@ -18,7 +18,7 @@ warnings.filterwarnings('ignore')
 # Page Configuration
 # ------------------------------------------------------------
 st.set_page_config(
-    page_title="FinTech Analytics Pro | Future‑Centric",
+    page_title="FinTech Analytics Pro | Final",
     page_icon="🚀",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -73,6 +73,16 @@ st.markdown("""
     }
     .guide-section h3 { color: #000000; }
     .guide-section p, .guide-section li { color: #000000; }
+    .insight-box {
+        background: #f0f4ff;
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        border-left: 5px solid #2a4b7c;
+        margin: 1rem 0;
+        color: #000000;
+        font-size: 0.95rem;
+    }
+    .insight-box strong { color: #0b1a3a; }
     @media (max-width: 768px) {
         .landing-header h1 { font-size: 2.4rem; }
     }
@@ -110,9 +120,8 @@ def fetch_data(symbol, periods_days):
         return None, None
 
 def monte_carlo_fixed_horizon(returns, current_price, years, n_sim=10000):
-    """Monte Carlo for a user‑specified number of years."""
     mu = returns.mean()
-    sigma = returns.std() * 0.9  # shrinkage
+    sigma = returns.std() * 0.9
     dt = 1/252
     total_days = int(years * 252)
     log_returns = np.random.normal(mu - 0.5 * sigma**2, sigma,
@@ -124,7 +133,6 @@ def monte_carlo_fixed_horizon(returns, current_price, years, n_sim=10000):
     expected_return = np.mean(final / current_price - 1) * 100
     var_95 = current_price - np.percentile(final, 5)
     cvar_95 = current_price - np.mean(final[final <= np.percentile(final, 5)])
-    # Monthly probabilities (every 21 days) but only up to 120 months for clarity
     month_indices = np.arange(21, total_days+1, 21)
     monthly_probs = []
     for idx in month_indices:
@@ -323,7 +331,7 @@ def show_analysis():
         '3 Years': 1095,
         '4 Years': 1460,
         '5 Years': 1825,
-        '10 Years': 3650,   # for completeness
+        '10 Years': 3650,
         '20 Years': 7300
     }
     data, info = fetch_data(symbol, periods)
@@ -440,6 +448,15 @@ def show_analysis():
     )
     st.plotly_chart(fig_prob, use_container_width=True)
 
+    # Insight after forecast chart
+    st.markdown("""
+    <div class="insight-box">
+        <strong>📘 What this tells you:</strong> This chart shows the probability that the price will be higher than today at each month in the future. 
+        A probability above 50% means the model suggests a higher chance of gain than loss over that horizon. 
+        The 50% threshold line is shown as a reference. If the line stays above 50% consistently, it indicates sustained bullish expectations.
+    </div>
+    """, unsafe_allow_html=True)
+
     # Recommendation based on probability
     prob = mc['prob_profit']
     if prob > 0.60:
@@ -462,45 +479,121 @@ def show_analysis():
     </div>
     """, unsafe_allow_html=True)
 
+    st.markdown("""
+    <div class="insight-box">
+        <strong>🧠 Why this recommendation?</strong> The recommendation is based on the 1‑year probability of profit. 
+        If the probability exceeds 60%, we consider it a high‑confidence buy. Between 45% and 60% we suggest holding, 
+        and below 45% we advise against buying. This is a simplified, quantitative rule – always combine with your own research.
+    </div>
+    """, unsafe_allow_html=True)
+
     # ------------------------------------------------------------
-    # Monthly Price History (Last 5 Years)
+    # Monthly Price History (Last 5 Years) – Year‑wise Tabs
     # ------------------------------------------------------------
     st.markdown("---")
-    st.markdown("## 📅 Monthly Price History (Last 5 Years)")
+    st.markdown("## 📅 Monthly Price History & Distribution (Last 5 Years)")
 
-    # Get 5‑year data if available
     five_year_data = data.get('5 Years', None)
     if five_year_data is not None:
-        # Resample to month-end
-        monthly = five_year_data['Close'].resample('ME').last()
-        # Create chart
-        fig_monthly = go.Figure()
-        fig_monthly.add_trace(go.Scatter(
-            x=monthly.index,
-            y=monthly,
+        # Overall 5‑year monthly chart (summary)
+        monthly_overall = five_year_data['Close'].resample('ME').last()
+        fig_overall = go.Figure()
+        fig_overall.add_trace(go.Scatter(
+            x=monthly_overall.index,
+            y=monthly_overall,
             mode='lines+markers',
             name='Monthly Close',
             line=dict(color='#2a4b7c', width=2),
             marker=dict(size=6)
         ))
-        fig_monthly.add_hline(y=current_price, line_dash="dash", line_color="#b33c3c",
+        fig_overall.add_hline(y=current_price, line_dash="dash", line_color="#b33c3c",
                               annotation_text="Current Price", annotation_position="bottom right")
-        fig_monthly.update_layout(
-            title="Month‑End Closing Prices (5 Years)",
+        fig_overall.update_layout(
+            title="Overall 5‑Year Month‑End Prices",
             xaxis_title="Date",
             yaxis_title="Price ($)",
             template="plotly_white",
-            height=400,
+            height=350,
             hovermode="x"
         )
-        st.plotly_chart(fig_monthly, use_container_width=True)
+        st.plotly_chart(fig_overall, use_container_width=True)
 
-        # Show as table
-        st.dataframe(
-            monthly.reset_index().rename(columns={'index': 'Date', 'Close': 'Price'}),
-            use_container_width=True,
-            hide_index=True
-        )
+        st.markdown("""
+        <div class="insight-box">
+            <strong>📘 What this shows:</strong> The line chart displays the price at the end of each month over the past 5 years. 
+            It helps you visualise the long‑term trend – is the asset generally moving up, down, or sideways? 
+            The dashed red line marks the current price. If the current price is near the upper end of the range, 
+            the asset may be expensive; near the lower end, it may be cheap.
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Year‑wise tabs
+        years = sorted(five_year_data.index.year.unique(), reverse=True)[:5]
+        tabs = st.tabs([f"📅 {year}" for year in years])
+
+        for tab, year in zip(tabs, years):
+            with tab:
+                year_data = five_year_data[five_year_data.index.year == year]
+                if year_data.empty:
+                    st.write("No data for this year.")
+                    continue
+
+                monthly_year = year_data['Close'].resample('ME').last()
+                fig_year = make_subplots(
+                    rows=2, cols=1,
+                    shared_xaxes=False,
+                    vertical_spacing=0.15,
+                    row_heights=[0.6, 0.4],
+                    subplot_titles=(f"Monthly Prices – {year}", f"Daily Price Distribution – {year}")
+                )
+                fig_year.add_trace(go.Scatter(
+                    x=monthly_year.index,
+                    y=monthly_year,
+                    mode='lines+markers',
+                    name='Monthly Close',
+                    line=dict(color='#2a4b7c', width=2),
+                    marker=dict(size=8, color='#2a4b7c')
+                ), row=1, col=1)
+                fig_year.add_hline(y=current_price, line_dash="dash", line_color="#b33c3c",
+                                   annotation_text="Current Price", annotation_position="bottom right",
+                                   row=1, col=1)
+                daily_prices = year_data['Close']
+                n_bins = min(20, max(5, len(daily_prices)//8+1))
+                fig_year.add_trace(go.Histogram(
+                    x=daily_prices,
+                    nbinsx=n_bins,
+                    marker_color='#2a4b7c',
+                    opacity=0.7,
+                    name='Daily Distribution'
+                ), row=2, col=1)
+                fig_year.add_vline(x=current_price, line_dash="dash", line_color="#b33c3c",
+                                   annotation_text="Current", annotation_position="top",
+                                   row=2, col=1)
+                fig_year.update_layout(height=500, template="plotly_white", showlegend=False)
+                fig_year.update_xaxes(title_text="Date", row=1, col=1)
+                fig_year.update_yaxes(title_text="Price ($)", row=1, col=1)
+                fig_year.update_xaxes(title_text="Price ($)", row=2, col=1)
+                fig_year.update_yaxes(title_text="Frequency", row=2, col=1)
+                st.plotly_chart(fig_year, use_container_width=True)
+
+                st.markdown(f"""
+                <div class="insight-box">
+                    <strong>📘 What this tells you for {year}:</strong> 
+                    The top chart shows the month‑end prices for this specific year. 
+                    The bottom histogram shows the distribution of all daily prices during that year – 
+                    how many days the price was in each range. 
+                    If the histogram has a tall bar at a certain price level, that level acted as a frequent point of trade, 
+                    which can become support or resistance. Compare the current price (dashed line) to this year's distribution 
+                    to see if the asset is trading at historically high or low levels relative to that year.
+                </div>
+                """, unsafe_allow_html=True)
+
+                st.markdown(f"**Monthly Prices – {year}**")
+                table_df = monthly_year.reset_index()
+                table_df.columns = ['Date', 'Price']
+                table_df['Date'] = table_df['Date'].dt.strftime('%B %Y')
+                table_df['Price'] = table_df['Price'].apply(format_currency)
+                st.dataframe(table_df, use_container_width=True, hide_index=True)
     else:
         st.info("5‑year data not available for this symbol.")
 
@@ -564,6 +657,19 @@ def show_analysis():
         fig_tech.update_yaxes(title_text="MACD", row=4, col=1)
         st.plotly_chart(fig_tech, use_container_width=True)
 
+        st.markdown("""
+        <div class="insight-box">
+            <strong>📘 Classic Chart Interpretation:</strong><br>
+            <b>Price & Bollinger Bands:</b> When price touches the upper band, it may be overbought; touching the lower band, oversold. 
+            The bands widen with volatility – narrow bands indicate a calm market, often preceding a breakout.<br>
+            <b>Volume:</b> Green bars show days with closing price higher than previous (buying pressure); red bars show lower close (selling pressure). 
+            High volume confirms price moves; low volume suggests weak conviction.<br>
+            <b>RSI (Relative Strength Index):</b> Above 70 = overbought (possible drop); below 30 = oversold (possible rise).<br>
+            <b>MACD:</b> When the MACD line crosses above the signal line, it's a bullish sign; crossing below is bearish. 
+            The histogram shows the difference – positive histogram means bullish momentum.
+        </div>
+        """, unsafe_allow_html=True)
+
     else:
         # --- Institutional Chart ---
         close = main_df['Close']
@@ -621,6 +727,20 @@ def show_analysis():
         fig_inst.update_yaxes(title_text="A/D & Chaikin", row=3, col=1)
         st.plotly_chart(fig_inst, use_container_width=True)
 
+        st.markdown("""
+        <div class="insight-box">
+            <strong>📘 Institutional Chart Interpretation:</strong><br>
+            <b>Keltner Channels:</b> Similar to Bollinger but uses ATR (Average True Range) for bandwidth – smoother and better for trending markets. 
+            Price above upper band indicates strong bullish momentum; below lower band, strong bearish.<br>
+            <b>MFI (Money Flow Index):</b> A volume‑weighted RSI – values above 80 suggest overbought, below 20 oversold. 
+            It also shows divergence with price (e.g., price making new high but MFI making lower high) – a warning of weakening buying pressure.<br>
+            <b>Accumulation/Distribution Line:</b> Measures cumulative money flow. Rising line = accumulation (smart money buying); falling = distribution (selling). 
+            Divergence between this line and price often signals reversals.<br>
+            <b>Chaikin Oscillator:</b> The momentum of money flow – when it crosses above zero, money flow momentum is positive; below zero, negative. 
+            Crosses can be used as buy/sell signals.
+        </div>
+        """, unsafe_allow_html=True)
+
     # ------------------------------------------------------------
     # Risk Dashboard & Regime
     # ------------------------------------------------------------
@@ -662,6 +782,22 @@ def show_analysis():
     else:
         col_k3.metric("Strategy Win Rate", "N/A")
 
+    st.markdown("""
+    <div class="insight-box">
+        <strong>📘 Risk Dashboard Explained:</strong><br>
+        <b>Volatility:</b> Annualised standard deviation of returns – higher means more price swings (riskier).<br>
+        <b>Max Drawdown:</b> The largest peak‑to‑trough decline over the period – a key measure of downside risk.<br>
+        <b>Sortino Ratio:</b> Return per unit of downside risk – higher is better; focuses only on losses, not total volatility.<br>
+        <b>Calmar Ratio:</b> Return divided by max drawdown – measures how well the asset recovers from losses.<br>
+        <b>VaR (Value at Risk):</b> The worst loss you can expect with 95% or 99% confidence – e.g., 95% VaR of -10% means there is a 5% chance of losing more than 10%.<br>
+        <b>CVaR (Expected Shortfall):</b> The average loss beyond the VaR threshold – a more conservative risk measure.<br>
+        <b>Beta:</b> Measures sensitivity to the market (S&P 500). Beta > 1 means more volatile than the market; < 1 means less.<br>
+        <b>Regime:</b> Bullish, Bearish, or Range‑bound – based on how far the current price is from its recent average.<br>
+        <b>Kelly Fraction:</b> The optimal percentage of your capital to risk on a trade, derived from the win rate and average win/loss of a simple moving‑average strategy. 
+        A value of 0.2 suggests you should risk 20% of your capital – but this is aggressive; many traders use a fraction of Kelly (e.g., half‑Kelly) for safety.
+    </div>
+    """, unsafe_allow_html=True)
+
     # Backtest equity curve
     if bt is not None and 'equity_curve' in bt:
         st.markdown("### 📈 Strategy Backtest (50/200 MA Crossover)")
@@ -682,16 +818,25 @@ def show_analysis():
         )
         st.plotly_chart(fig_eq, use_container_width=True)
 
+        st.markdown("""
+        <div class="insight-box">
+            <strong>📘 Backtest Insight:</strong> This chart shows the cumulative performance of a simple strategy: 
+            buy when the 50‑day moving average crosses above the 200‑day moving average, and sell when it crosses below. 
+            If the equity curve is rising over time, the strategy worked well on this asset. 
+            However, past performance does not guarantee future results – use this as a guide, not a rule.
+        </div>
+        """, unsafe_allow_html=True)
+
         col_s1, col_s2, col_s3 = st.columns(3)
         col_s1.metric("Total Return", f"{bt['total_return']:.2f}%")
         col_s2.metric("Sharpe (Strategy)", f"{bt['sharpe']:.2f}")
         col_s3.metric("Max Drawdown (Strategy)", f"{bt['max_drawdown']:.2f}%")
 
     # ------------------------------------------------------------
-    # Historical Distribution (Tabs)
+    # Historical Distribution (Tabs) – kept for completeness
     # ------------------------------------------------------------
     st.markdown("---")
-    st.markdown("## 📊 Historical Price Distribution")
+    st.markdown("## 📊 Historical Price Distribution (by Period)")
     tabs = st.tabs(["1 Year", "2 Years", "3 Years", "4 Years", "5 Years"])
     for tab, (name, df) in zip(tabs, data.items()):
         if name in ['1 Year', '2 Years', '3 Years', '4 Years', '5 Years']:
@@ -719,6 +864,19 @@ def show_analysis():
                     )
                     st.plotly_chart(fig_hist, use_container_width=True)
 
+                    # Insight for each histogram
+                    st.markdown(f"""
+                    <div class="insight-box">
+                        <strong>📘 What this histogram shows ({name}):</strong> 
+                        It groups daily closing prices into bins and shows how many days the price was in each bin. 
+                        The taller the bar, the more days the price spent in that range. 
+                        The dashed line marks the current price. 
+                        If the current price is to the left of most bars, the asset is trading at low historical levels; 
+                        if to the right, at high levels. Skewness (positive skew = more low prices, often bullish; negative = more high prices, often bearish) 
+                        and kurtosis (high = fat tails, more extreme moves) give further insight into the return distribution.
+                    </div>
+                    """, unsafe_allow_html=True)
+
                     stats_df = pd.DataFrame({
                         "Metric": ["Mean", "Median", "Min", "Max", "Std Dev", "Skewness", "Kurtosis"],
                         "Value": [
@@ -732,6 +890,18 @@ def show_analysis():
                         ]
                     })
                     st.dataframe(stats_df, use_container_width=True, hide_index=True)
+
+                    st.markdown("""
+                    <div class="insight-box">
+                        <strong>📘 Statistics explained:</strong><br>
+                        <b>Mean:</b> The average price – sensitive to extremes.<br>
+                        <b>Median:</b> The middle price – more robust to outliers.<br>
+                        <b>Min / Max:</b> The lowest and highest prices reached.<br>
+                        <b>Std Dev:</b> A measure of spread – higher means more volatile.<br>
+                        <b>Skewness:</b> Positive skew means the distribution has a long right tail (more days at lower prices) – often bullish; negative skew means a long left tail (more days at higher prices) – often bearish.<br>
+                        <b>Kurtosis:</b> High kurtosis ( > 3) indicates heavy tails – more extreme price moves than a normal distribution.
+                    </div>
+                    """, unsafe_allow_html=True)
 
     # ------------------------------------------------------------
     # Download Data
@@ -761,55 +931,56 @@ def show_analysis():
     # Comprehensive Guide (Educational Section)
     # ------------------------------------------------------------
     st.markdown("---")
-    with st.expander("📖 Guide – Learn About Every Analysis (Click to Expand)", expanded=False):
+    with st.expander("📖 Complete Guide – Learn Every Technique (Click to Expand)", expanded=False):
         st.markdown("""
         <div class="guide-section">
-        <h3>📘 Welcome to Your Financial Learning Center</h3>
-        <p>This guide explains every part of this app in simple, plain English. No finance background required.</p>
+        <h3>📘 Financial Education Center</h3>
+        <p>This guide explains every analysis, indicator, and metric used in the app. No prior finance background required.</p>
         <hr>
 
-        <h4>1. What is Monte Carlo Simulation?</h4>
-        <p><b>Think of it like this:</b> Instead of making one guess about the future, we run thousands of "what‑if" scenarios. We take the asset's past volatility and average return, then simulate many possible future paths. The result is a probability – not a certainty. For example, if we say "60% chance of profit", it means that in 6 out of 10 simulated futures, the price ended higher than today.</p>
-        <p><b>Why it matters:</b> It helps you prepare for different outcomes, not just the most likely one.</p>
+        <h4>1. Monte Carlo Simulation</h4>
+        <p><b>What it is:</b> A method to estimate the range of possible future outcomes by running thousands of random simulations. We use historical returns (average and volatility) to generate many hypothetical price paths.</p>
+        <p><b>How to interpret:</b> The probability of profit is the percentage of simulated paths that end above today's price. Higher probability = more confidence in future gains.</p>
 
         <h4>2. Forecast Horizon (1–20 Years)</h4>
-        <p>You can choose how far ahead you want to look. Longer horizons tend to have higher uncertainty, so the probability range widens. The app shows you the probability of being above today's price at each month in that horizon.</p>
+        <p>You choose the time frame for the simulation. Longer horizons have wider uncertainty, so the probability range will typically broaden.</p>
 
-        <h4>3. Monthly Price History</h4>
-        <p>This shows the asset’s closing price at the end of each month for the last 5 years. It helps you see long‑term trends, support/resistance levels, and how the price has behaved in different economic conditions.</p>
+        <h4>3. Monthly Price History & Histograms</h4>
+        <p>Month‑end prices show long‑term trends. Histograms show the frequency distribution of daily prices – useful for identifying support/resistance levels.</p>
 
-        <h4>4. Technical Charts – Classic vs. Institutional</h4>
+        <h4>4. Technical Indicators</h4>
         <ul>
-        <li><b>Classic:</b> Bollinger Bands (volatility), RSI (overbought/oversold), MACD (momentum). These are the most popular tools for traders.</li>
-        <li><b>Institutional:</b> Keltner Channels (trend‑based volatility), Money Flow Index (volume‑weighted momentum), Accumulation/Distribution (smart money flow), Chaikin Oscillator (momentum of money flow). These are used by hedge funds and professional traders.</li>
+        <li><b>Bollinger Bands:</b> A volatility envelope around a moving average (20‑day SMA ± 2 standard deviations). Narrow bands suggest low volatility (possible breakout); touching upper/lower bands suggests overbought/oversold.</li>
+        <li><b>RSI (Relative Strength Index):</b> Momentum oscillator from 0–100. >70 = overbought, <30 = oversold.</li>
+        <li><b>MACD (Moving Average Convergence Divergence):</b> Shows relationship between two EMAs. Bullish when MACD crosses above its signal line; bearish when it crosses below.</li>
+        <li><b>Keltner Channels:</b> Similar to Bollinger but uses ATR (volatility) – smoother and better for trending markets.</li>
+        <li><b>MFI (Money Flow Index):</b> Volume‑weighted RSI – overbought >80, oversold <20. Also shows divergence with price.</li>
+        <li><b>Accumulation/Distribution Line:</b> Cumulative money flow – rising = accumulation (buying), falling = distribution (selling).</li>
+        <li><b>Chaikin Oscillator:</b> Momentum of money flow – crosses above/below zero signal changes in buying/selling pressure.</li>
         </ul>
 
-        <h4>5. Risk Dashboard</h4>
+        <h4>5. Risk Metrics</h4>
         <ul>
-        <li><b>Volatility:</b> How much the price swings. Higher = riskier.</li>
-        <li><b>Max Drawdown:</b> The worst peak‑to‑trough decline in the period.</li>
-        <li><b>Sortino Ratio:</b> Return per unit of downside risk – higher is better.</li>
-        <li><b>Calmar Ratio:</b> Return divided by max drawdown – measures recovery ability.</li>
-        <li><b>VaR (Value at Risk):</b> The worst loss you can expect with 95% or 99% confidence.</li>
-        <li><b>CVaR (Expected Shortfall):</b> The average loss beyond VaR – gives a fuller picture of tail risk.</li>
-        <li><b>Beta:</b> How much the asset moves with the S&P 500. Beta >1 means it's more volatile than the market; <1 means less.</li>
+        <li><b>Volatility:</b> Annualised standard deviation of returns – higher = riskier.</li>
+        <li><b>Max Drawdown:</b> The largest peak‑to‑trough decline – measures downside risk.</li>
+        <li><b>Sortino Ratio:</b> Return per unit of downside deviation – higher is better; focuses on negative volatility.</li>
+        <li><b>Calmar Ratio:</b> Return divided by max drawdown – assesses recovery ability.</li>
+        <li><b>VaR (Value at Risk):</b> Maximum loss at a given confidence level (95% / 99%).</li>
+        <li><b>CVaR (Expected Shortfall):</b> Average loss beyond VaR – gives a fuller picture of tail risk.</li>
+        <li><b>Beta:</b> Sensitivity to the market (S&P 500). Beta >1 = more volatile than market; <1 = less volatile.</li>
         </ul>
 
         <h4>6. Regime Classification</h4>
-        <p>We compare the current price to its recent range. If it's more than half a standard deviation above the mean, we call it "Bullish". Below: "Bearish". Otherwise: "Range‑bound". This helps you understand the broader market environment.</p>
+        <p>We classify the current market condition using a 50‑day rolling z‑score: Bullish (>0.5σ above mean), Bearish (<‑0.5σ), or Range‑bound (between).</p>
 
         <h4>7. Kelly Criterion</h4>
-        <p>This is a mathematical formula that tells you the optimal fraction of your capital to bet on a trade. It's based on the win rate and average win/loss of a simple moving‑average strategy. It's a risk‑management tool – not a guarantee, but a guide.</p>
+        <p>A formula that suggests the optimal fraction of capital to bet on a trade, based on historical win rate and average win/loss ratio. It is a risk‑management tool – not a guarantee.</p>
 
         <h4>8. Strategy Backtest</h4>
-        <p>We test a simple 50/200‑day moving average crossover strategy on historical data. The equity curve shows how it would have performed. This gives you a sense of whether trend‑following has worked for this asset.</p>
-
-        <h4>9. Historical Price Distribution</h4>
-        <p>Histograms show how often the price was in each range. The current price is marked. This helps you see if the price is historically high, low, or average.</p>
+        <p>We test a simple 50/200‑day moving average crossover strategy and display its equity curve. This shows how a trend‑following strategy would have performed on this asset.</p>
 
         <hr>
-        <p><b>Remember:</b> All analysis is based on historical data. Past performance does not guarantee future results. Always do your own research and consult a financial advisor before making investment decisions.</p>
-        <p style="font-size:0.9rem; color:#6b7a99;">This app is for educational and informational purposes only.</p>
+        <p><b>Disclaimer:</b> All analysis is based on historical data and is for educational purposes only. Past performance does not guarantee future results. Always conduct your own research and consult a financial advisor before making investment decisions.</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -817,7 +988,7 @@ def show_analysis():
     st.markdown("---")
     st.markdown("""
     <div class="footer">
-        <p>🚀 FinTech Analytics Pro – Future‑Centric Edition | Designed with ❤️ by <b>Mamoor Hayat</b></p>
+        <p>🚀 FinTech Analytics Pro – Final Edition | Designed with ❤️ by <b>Mamoor Hayat</b></p>
         <p style="font-size:0.8rem; color:#000000;">© 2024 All Rights Reserved | Data from Yahoo Finance | Not financial advice</p>
     </div>
     """, unsafe_allow_html=True)
