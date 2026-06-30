@@ -1,7 +1,7 @@
 """
-FinTech Analytics Pro – Final Edition
+FinTech Analytics Pro
 Designed by Mamoor Hayat
-© 2024 All Rights Reserved
+© 2026 All Rights Reserved
 """
 
 import streamlit as st
@@ -18,8 +18,7 @@ warnings.filterwarnings('ignore')
 # Page Configuration
 # ------------------------------------------------------------
 st.set_page_config(
-    page_title="FinTech Analytics Pro | Final",
-    page_icon="🚀",
+    page_title="Analytics Pro | Final",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -296,7 +295,7 @@ def format_market_cap(value):
 def show_landing():
     st.markdown("""
     <div class="landing-header">
-        <h1>🚀 FinTech Analytics Pro</h1>
+        <h1>Analytics Pro</h1>
         <p>Future‑Centric Quant Research • Probabilistic Forecasts • Institutional Indicators</p>
     </div>
     """, unsafe_allow_html=True)
@@ -304,12 +303,12 @@ def show_landing():
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         symbol_input = st.text_input("Enter symbol (e.g., AAPL, BTC-USD)", value="AAPL", key="landing_symbol").upper()
-        if st.button("🔮 Analyze Future", key="landing_button"):
+        if st.button("Analyze Future", key="landing_button"):
             st.session_state.symbol = symbol_input
             st.rerun()
 
     st.markdown("---")
-    st.markdown("### 🔥 Top 5 Stocks")
+    st.markdown("### Top 5 Stocks")
     top_stocks = ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA"]
     cols = st.columns(5)
     for i, sym in enumerate(top_stocks):
@@ -318,7 +317,7 @@ def show_landing():
                 st.session_state.symbol = sym
                 st.rerun()
 
-    st.markdown("### 🪙 Top 5 Cryptocurrencies")
+    st.markdown("###  Top 5 Cryptocurrencies")
     top_crypto = ["BTC-USD", "ETH-USD", "BNB-USD", "SOL-USD", "XRP-USD"]
     cols = st.columns(5)
     for i, sym in enumerate(top_crypto):
@@ -344,7 +343,7 @@ def show_analysis():
         st.session_state.symbol = None
         st.rerun()
 
-    st.markdown(f"## 🔮 Future‑Centric Analysis for **{symbol}**")
+    st.markdown(f"##  Future‑Centric Analysis for **{symbol}**")
 
     # Fetch data
     periods = {
@@ -388,7 +387,7 @@ def show_analysis():
     with col1:
         st.markdown(f"""
         <div class="card">
-            <h4>🏢 Company</h4>
+            <h4> Company</h4>
             <div class="metric-big">{company_name}</div>
             <div class="metric-label">{symbol}</div>
         </div>
@@ -396,14 +395,14 @@ def show_analysis():
     with col2:
         st.markdown(f"""
         <div class="card">
-            <h4>💰 Current Price</h4>
+            <h4> Current Price</h4>
             <div class="metric-big">{format_currency(current_price)}</div>
         </div>
         """, unsafe_allow_html=True)
     with col3:
         st.markdown(f"""
         <div class="card">
-            <h4>🏭 Sector</h4>
+            <h4> Sector</h4>
             <div class="metric-big">{sector if sector != 'N/A' else '—'}</div>
             <div class="metric-label">{industry if industry != 'N/A' else '—'}</div>
         </div>
@@ -412,7 +411,7 @@ def show_analysis():
         cap_display = format_market_cap(market_cap) if market_cap else "N/A"
         st.markdown(f"""
         <div class="card">
-            <h4>📊 Market Cap</h4>
+            <h4>Market Cap</h4>
             <div class="metric-big">{cap_display}</div>
         </div>
         """, unsafe_allow_html=True)
@@ -431,7 +430,7 @@ def show_analysis():
     # User Controls: Forecast Horizon
     # ------------------------------------------------------------
     st.markdown("---")
-    st.markdown("## 🎯 Custom Forecast Horizon")
+    st.markdown("##  Custom Forecast Horizon")
     forecast_years = st.slider(
         "Select forecast period (years)",
         min_value=1, max_value=20, value=10, step=1,
@@ -482,15 +481,15 @@ def show_analysis():
     prob = mc['prob_profit']
     if prob > 0.60:
         rec_class = "prob-high"
-        rec_text = f"✅ BUY – High probability of positive return ({forecast_years}Y)"
+        rec_text = f" BUY – High probability of positive return ({forecast_years}Y)"
         rec_detail = "Strong upside potential with moderate risk."
     elif prob > 0.45:
         rec_class = "prob-medium"
-        rec_text = f"⚖️ HOLD – Moderate probability ({forecast_years}Y)"
+        rec_text = f" HOLD – Moderate probability ({forecast_years}Y)"
         rec_detail = "Uncertainty is high; wait for clearer signals."
     else:
         rec_class = "prob-low"
-        rec_text = f"❌ DON'T BUY – Low probability of profit ({forecast_years}Y)"
+        rec_text = f" DON'T BUY – Low probability of profit ({forecast_years}Y)"
         rec_detail = "Downside risk outweighs upside potential."
 
     st.markdown(f"""
@@ -502,7 +501,7 @@ def show_analysis():
 
     st.markdown("""
     <div class="insight-box">
-        <strong>🧠 Why this recommendation?</strong> The recommendation is based on the 1‑year probability of profit. 
+        <strong> Why this recommendation?</strong> The recommendation is based on the 1‑year probability of profit. 
         If the probability exceeds 60%, we consider it a high‑confidence buy. Between 45% and 60% we suggest holding, 
         and below 45% we advise against buying. This is a simplified, quantitative rule – always combine with your own research.
     </div>
@@ -512,7 +511,7 @@ def show_analysis():
     # Monthly Price History (Last 5 Years) – Year‑wise Tabs
     # ------------------------------------------------------------
     st.markdown("---")
-    st.markdown("## 📅 Monthly Price History & Distribution (Last 5 Years)")
+    st.markdown("##  Monthly Price History & Distribution (Last 5 Years)")
 
     five_year_data = data.get('5 Years', None)
     if five_year_data is not None:
@@ -541,7 +540,7 @@ def show_analysis():
 
         st.markdown("""
         <div class="insight-box">
-            <strong>📘 What this shows:</strong> The line chart displays the price at the end of each month over the past 5 years. 
+            <strong> What this shows:</strong> The line chart displays the price at the end of each month over the past 5 years. 
             It helps you visualise the long‑term trend – is the asset generally moving up, down, or sideways? 
             The dashed red line marks the current price. If the current price is near the upper end of the range, 
             the asset may be expensive; near the lower end, it may be cheap.
@@ -550,7 +549,7 @@ def show_analysis():
 
         # Year‑wise tabs
         years = sorted(five_year_data.index.year.unique(), reverse=True)[:5]
-        tabs = st.tabs([f"📅 {year}" for year in years])
+        tabs = st.tabs([f" {year}" for year in years])
 
         for tab, year in zip(tabs, years):
             with tab:
@@ -607,7 +606,7 @@ def show_analysis():
 
                 st.markdown(f"""
                 <div class="insight-box">
-                    <strong>📘 What this tells you for {year}:</strong> 
+                    <strong> What this tells you for {year}:</strong> 
                     The top chart shows the month‑end prices for this specific year. 
                     The bottom histogram shows the distribution of all daily prices during that year – 
                     how many days the price was in each range. 
@@ -630,7 +629,7 @@ def show_analysis():
     # Advanced Technical Analysis (Classic / Institutional toggle)
     # ------------------------------------------------------------
     st.markdown("---")
-    st.markdown("## 📊 Advanced Technical Analysis")
+    st.markdown("##  Advanced Technical Analysis")
 
     chart_mode = st.radio(
         "Select Chart Mode",
@@ -688,7 +687,7 @@ def show_analysis():
 
         st.markdown("""
         <div class="insight-box">
-            <strong>📘 Classic Chart Interpretation:</strong><br>
+            <strong> Classic Chart Interpretation:</strong><br>
             <b>Price & Bollinger Bands:</b> When price touches the upper band, it may be overbought; touching the lower band, oversold. 
             The bands widen with volatility – narrow bands indicate a calm market, often preceding a breakout.<br>
             <b>Volume:</b> Green bars show days with closing price higher than previous (buying pressure); red bars show lower close (selling pressure). 
@@ -758,7 +757,7 @@ def show_analysis():
 
         st.markdown("""
         <div class="insight-box">
-            <strong>📘 Institutional Chart Interpretation:</strong><br>
+            <strong> Institutional Chart Interpretation:</strong><br>
             <b>Keltner Channels:</b> Similar to Bollinger but uses ATR (Average True Range) for bandwidth – smoother and better for trending markets. 
             Price above upper band indicates strong bullish momentum; below lower band, strong bearish.<br>
             <b>MFI (Money Flow Index):</b> A volume‑weighted RSI – values above 80 suggest overbought, below 20 oversold. 
@@ -774,7 +773,7 @@ def show_analysis():
     # Risk Dashboard & Regime
     # ------------------------------------------------------------
     st.markdown("---")
-    st.markdown("## 📊 Risk & Performance Dashboard")
+    st.markdown("##  Risk & Performance Dashboard")
 
     try:
         spy = yf.Ticker("SPY").history(start=prices.index[0], end=prices.index[-1])
@@ -813,7 +812,7 @@ def show_analysis():
 
     st.markdown("""
     <div class="insight-box">
-        <strong>📘 Risk Dashboard Explained:</strong><br>
+        <strong> Risk Dashboard Explained:</strong><br>
         <b>Volatility:</b> Annualised standard deviation of returns – higher means more price swings (riskier).<br>
         <b>Max Drawdown:</b> The largest peak‑to‑trough decline over the period – a key measure of downside risk.<br>
         <b>Sortino Ratio:</b> Return per unit of downside risk – higher is better; focuses only on losses, not total volatility.<br>
@@ -829,7 +828,7 @@ def show_analysis():
 
     # Backtest equity curve
     if bt is not None and 'equity_curve' in bt:
-        st.markdown("### 📈 Strategy Backtest (50/200 MA Crossover)")
+        st.markdown("###  Strategy Backtest (50/200 MA Crossover)")
         fig_eq = go.Figure()
         fig_eq.add_trace(go.Scatter(
             x=bt['equity_curve'].index,
@@ -849,7 +848,7 @@ def show_analysis():
 
         st.markdown("""
         <div class="insight-box">
-            <strong>📘 Backtest Insight:</strong> This chart shows the cumulative performance of a simple strategy: 
+            <strong> Backtest Insight:</strong> This chart shows the cumulative performance of a simple strategy: 
             buy when the 50‑day moving average crosses above the 200‑day moving average, and sell when it crosses below. 
             If the equity curve is rising over time, the strategy worked well on this asset. 
             However, past performance does not guarantee future results – use this as a guide, not a rule.
@@ -865,7 +864,7 @@ def show_analysis():
     # Historical Distribution (Tabs) – kept for completeness
     # ------------------------------------------------------------
     st.markdown("---")
-    st.markdown("## 📊 Historical Price Distribution (by Period)")
+    st.markdown("##  Historical Price Distribution (by Period)")
     tabs = st.tabs(["1 Year", "2 Years", "3 Years", "4 Years", "5 Years"])
     for tab, (name, df) in zip(tabs, data.items()):
         if name in ['1 Year', '2 Years', '3 Years', '4 Years', '5 Years']:
@@ -896,7 +895,7 @@ def show_analysis():
                     # Insight for each histogram
                     st.markdown(f"""
                     <div class="insight-box">
-                        <strong>📘 What this histogram shows ({name}):</strong> 
+                        <strong> What this histogram shows ({name}):</strong> 
                         It groups daily closing prices into bins and shows how many days the price was in each bin. 
                         The taller the bar, the more days the price spent in that range. 
                         The dashed line marks the current price. 
@@ -922,7 +921,7 @@ def show_analysis():
 
                     st.markdown("""
                     <div class="insight-box">
-                        <strong>📘 Statistics explained:</strong><br>
+                        <strong> Statistics explained:</strong><br>
                         <b>Mean:</b> The average price – sensitive to extremes.<br>
                         <b>Median:</b> The middle price – more robust to outliers.<br>
                         <b>Min / Max:</b> The lowest and highest prices reached.<br>
@@ -936,10 +935,10 @@ def show_analysis():
     # Comprehensive Guide (Educational Section)
     # ------------------------------------------------------------
     st.markdown("---")
-    with st.expander("📖 Complete Guide – Learn Every Technique (Click to Expand)", expanded=False):
+    with st.expander(" Complete Guide – Learn Every Technique (Click to Expand)", expanded=False):
         st.markdown("""
         <div class="guide-section">
-        <h3>📘 Financial Education Center</h3>
+        <h3> Financial Education Center</h3>
         <p>This guide explains every analysis, indicator, and metric used in the app. No prior finance background required.</p>
         <hr>
 
@@ -993,7 +992,7 @@ def show_analysis():
     st.markdown("---")
     st.markdown("""
     <div class="footer">
-        <p>🚀 FinTech Analytics Pro – Final Edition | Designed with ❤️ by <b>Mamoor Hayat</b></p>
+        <p> Analytics Pro – Final Edition | Designed by <b>Mamoor Hayat</b></p>
         <p style="font-size:0.8rem; color:#000000;">© 2024 All Rights Reserved | Data from Yahoo Finance | Not financial advice</p>
     </div>
     """, unsafe_allow_html=True)
