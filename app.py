@@ -1,5 +1,5 @@
 """
-FinTech Analytics Pro – Nobel-Grade Edition
+FinTech Analytics Pro – Final Edition
 Designed by Mamoor Hayat
 Copyright © 2024 All Rights Reserved
 """
@@ -11,22 +11,21 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime, timedelta
-from scipy import stats
 import warnings
 warnings.filterwarnings('ignore')
 
 # ------------------------------------------------------------
-# Configuration
+# Page Configuration
 # ------------------------------------------------------------
 st.set_page_config(
-    page_title="FinTech Analytics Pro | Nobel Edition",
+    page_title="FinTech Analytics Pro | Final",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
 # ------------------------------------------------------------
-# Custom CSS – Premium, Clean, Light
+# Custom CSS – Clean, Light, High Contrast
 # ------------------------------------------------------------
 st.markdown("""
 <style>
@@ -44,22 +43,24 @@ st.markdown("""
     .landing-header h1 { font-size: 4rem; font-weight: 800; color: #0b1a3a; margin: 0; letter-spacing: -1px; }
     .landing-header p { font-size: 1.3rem; color: #4a5b7e; margin: 0.5rem 0 1.5rem 0; }
     .card {
-        background: white;
+        background: white !important;
         padding: 1.5rem;
         border-radius: 20px;
         box-shadow: 0 4px 16px rgba(0,0,0,0.04);
         margin-bottom: 1.2rem;
         border-left: 6px solid #2a4b7c;
         transition: 0.2s;
+        color: #000000 !important;
     }
     .card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
-    .card h4 { color: #0b1a3a; font-weight: 700; margin-top: 0; }
-    .metric-big { font-size: 2.2rem; font-weight: 700; color: #0b1a3a; margin: 0.2rem 0; }
-    .metric-label { font-size: 0.85rem; color: #6b7a99; text-transform: uppercase; letter-spacing: 0.5px; }
-    .prob-high { background: #e5f6e5; border-left: 6px solid #1b7e3d; padding: 1.2rem; border-radius: 16px; }
-    .prob-medium { background: #fff4e0; border-left: 6px solid #d98c2b; padding: 1.2rem; border-radius: 16px; }
-    .prob-low { background: #fce8e8; border-left: 6px solid #b33c3c; padding: 1.2rem; border-radius: 16px; }
-    .footer { text-align: center; padding: 1.5rem; background: #e8edf9; border-radius: 20px; margin-top: 2rem; color: #0b1a3a; }
+    .card h4 { color: #000000 !important; font-weight: 700; margin-top: 0; }
+    .card p, .card div, .card span { color: #000000 !important; }
+    .metric-big { font-size: 2.2rem; font-weight: 700; color: #000000 !important; margin: 0.2rem 0; }
+    .metric-label { font-size: 0.85rem; color: #000000 !important; text-transform: uppercase; letter-spacing: 0.5px; }
+    .prob-high { background: #e5f6e5; border-left: 6px solid #1b7e3d; padding: 1.2rem; border-radius: 16px; color: #000000; }
+    .prob-medium { background: #fff4e0; border-left: 6px solid #d98c2b; padding: 1.2rem; border-radius: 16px; color: #000000; }
+    .prob-low { background: #fce8e8; border-left: 6px solid #b33c3c; padding: 1.2rem; border-radius: 16px; color: #000000; }
+    .footer { text-align: center; padding: 1.5rem; background: #e8edf9; border-radius: 20px; margin-top: 2rem; color: #000000; }
     .badge { background: #2a4b7c; color: white; padding: 0.2rem 0.8rem; border-radius: 30px; font-size: 0.7rem; font-weight: 600; display: inline-block; }
     @media (max-width: 768px) {
         .landing-header h1 { font-size: 2.4rem; }
@@ -74,9 +75,10 @@ if 'symbol' not in st.session_state:
     st.session_state.symbol = None
 
 # ------------------------------------------------------------
-# Helper Functions (Advanced)
+# Helper Functions (All Core Logic)
 # ------------------------------------------------------------
 
+@st.cache_data(ttl=3600)
 def fetch_data(symbol, periods_days):
     """Fetch data with caching and error handling."""
     try:
@@ -90,29 +92,24 @@ def fetch_data(symbol, periods_days):
                 data[name] = df
         info = ticker.info
         return data, info
-    except:
+    except Exception as e:
         return None, None
 
-def monte_carlo_bayesian(returns, current_price, days=252, n_sim=10000):
+def monte_carlo_simulation(returns, current_price, days=252, n_sim=10000):
     """Bayesian Monte Carlo with shrinkage on volatility."""
     mu = returns.mean()
     sigma = returns.std()
-    # Bayesian shrinkage: use a prior that pulls sigma towards sample mean
-    # Simple approach: use a Student-t prior; we'll just use a robust estimate
-    # For simplicity, we keep it as is, but we can add a small shrinkage factor.
-    # Actually, we use the empirical mu and sigma; we could also sample from posterior if we had time.
-    # We'll simulate with GBM.
+    # Shrink sigma slightly to avoid overdispersion
+    sigma_shrunk = sigma * 0.9 + 0.1 * returns.median()  # simple shrinkage
     dt = 1/252
-    # Use slightly shrunk sigma to avoid overdispersion
-    sigma_shrunk = sigma * (1 - 0.1) + 0.1 * returns.std()  # just a placeholder
     log_returns = np.random.normal(mu - 0.5 * sigma_shrunk**2, sigma_shrunk, size=(days, n_sim))
     cum_log = np.cumsum(log_returns, axis=0)
     paths = current_price * np.exp(cum_log)
     final = paths[-1, :]
     prob_profit = np.mean(final > current_price)
     expected_return = np.mean(final / current_price - 1) * 100
-    var_95 = np.percentile(final, 5) - current_price
-    cvar_95 = np.mean(final[final <= np.percentile(final, 5)]) - current_price
+    var_95 = current_price - np.percentile(final, 5)
+    cvar_95 = current_price - np.mean(final[final <= np.percentile(final, 5)])
     return {
         'prob_profit': prob_profit,
         'expected_return': expected_return,
@@ -122,14 +119,13 @@ def monte_carlo_bayesian(returns, current_price, days=252, n_sim=10000):
     }
 
 def regime_classification(prices, window=50):
-    """Classify regime based on rolling mean and volatility."""
+    """Classify regime based on rolling z-score."""
     if len(prices) < window:
         return "Insufficient data"
     rolling_mean = prices.rolling(window).mean()
     rolling_std = prices.rolling(window).std()
     latest_mean = rolling_mean.iloc[-1]
     latest_std = rolling_std.iloc[-1]
-    # Compare current price to mean
     current = prices.iloc[-1]
     z_score = (current - latest_mean) / latest_std if latest_std != 0 else 0
     if z_score > 0.5:
@@ -140,16 +136,14 @@ def regime_classification(prices, window=50):
         return "Range‑bound"
 
 def compute_beta(asset_returns, market_returns):
-    """Compute beta relative to market."""
-    if len(asset_returns) != len(market_returns):
-        # Align by date
-        common = asset_returns.index.intersection(market_returns.index)
-        if len(common) < 10:
-            return np.nan
-        asset_returns = asset_returns.loc[common]
-        market_returns = market_returns.loc[common]
-    cov = np.cov(asset_returns, market_returns)[0,1]
-    var = np.var(market_returns)
+    """Compute beta relative to market (SPY)."""
+    common = asset_returns.index.intersection(market_returns.index)
+    if len(common) < 10:
+        return np.nan
+    asset = asset_returns.loc[common]
+    market = market_returns.loc[common]
+    cov = np.cov(asset, market)[0,1]
+    var = np.var(market)
     return cov / var if var != 0 else np.nan
 
 def kelly_criterion(win_rate, avg_win, avg_loss):
@@ -167,17 +161,18 @@ def backtest_strategy(prices, short=50, long=200):
     signals['short_ma'] = prices.rolling(short).mean()
     signals['long_ma'] = prices.rolling(long).mean()
     signals['signal'] = 0
-    signals['signal'][short:] = np.where(signals['short_ma'][short:] > signals['long_ma'][short:], 1, 0)
+    signals.loc[signals.index[short:], 'signal'] = np.where(
+        signals['short_ma'][short:] > signals['long_ma'][short:], 1, 0
+    )
     signals['position'] = signals['signal'].diff()
-    # Compute returns
     returns = prices.pct_change()
     signals['strategy_returns'] = signals['signal'].shift(1) * returns
     # Metrics
     total_return = (signals['strategy_returns'] + 1).prod() - 1
-    sharpe = signals['strategy_returns'].mean() / signals['strategy_returns'].std() * np.sqrt(252) if signals['strategy_returns'].std() != 0 else 0
+    sharpe = (signals['strategy_returns'].mean() / signals['strategy_returns'].std() * np.sqrt(252)) if signals['strategy_returns'].std() != 0 else 0
     win_rate = (signals['strategy_returns'] > 0).mean()
-    max_drawdown = (signals['strategy_returns'].cumsum().cummax() - signals['strategy_returns'].cumsum()).max()
-    # Average win/loss
+    cum_ret = signals['strategy_returns'].cumsum()
+    max_drawdown = (cum_ret.cummax() - cum_ret).max()
     wins = signals['strategy_returns'][signals['strategy_returns'] > 0]
     losses = signals['strategy_returns'][signals['strategy_returns'] < 0]
     avg_win = wins.mean() if len(wins) > 0 else 0
@@ -192,19 +187,16 @@ def backtest_strategy(prices, short=50, long=200):
         'equity_curve': (1 + signals['strategy_returns']).cumprod()
     }
 
-def compute_risk_metrics(returns, prices):
-    """Compute VaR, CVaR, Sortino, Calmar, etc."""
+def compute_risk_metrics(returns):
+    """Compute VaR, CVaR, Sortino, etc."""
     if len(returns) < 10:
         return {}
-    # Historical VaR
     var_95 = np.percentile(returns, 5)
     var_99 = np.percentile(returns, 1)
     cvar_95 = returns[returns <= var_95].mean()
-    # Sortino (downside deviation)
     downside = returns[returns < 0]
     downside_std = downside.std() if len(downside) > 0 else np.nan
-    sortino = returns.mean() / downside_std * np.sqrt(252) if downside_std != 0 else np.nan
-    # Calmar = total return / max drawdown
+    sortino = (returns.mean() / downside_std * np.sqrt(252)) if downside_std != 0 else np.nan
     cum = (1 + returns).cumprod()
     peak = cum.expanding().max()
     drawdown = (peak - cum) / peak
@@ -219,6 +211,40 @@ def compute_risk_metrics(returns, prices):
         'max_drawdown': max_drawdown * 100,
         'calmar': calmar
     }
+
+def calculate_rsi(data, window=14):
+    delta = data.diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=window).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=window).mean()
+    rs = gain / loss
+    rsi = 100 - (100 / (1 + rs))
+    return rsi
+
+def calculate_macd(data, fast=12, slow=26, signal=9):
+    exp1 = data.ewm(span=fast, adjust=False).mean()
+    exp2 = data.ewm(span=slow, adjust=False).mean()
+    macd = exp1 - exp2
+    signal_line = macd.ewm(span=signal, adjust=False).mean()
+    histogram = macd - signal_line
+    return macd, signal_line, histogram
+
+def format_currency(value):
+    if pd.isna(value) or value is None:
+        return "N/A"
+    return f"${value:,.2f}"
+
+def format_market_cap(value):
+    """Format market cap in M, B, or T."""
+    if pd.isna(value) or value is None:
+        return "N/A"
+    if value >= 1e12:
+        return f"${value/1e12:.2f}T"
+    elif value >= 1e9:
+        return f"${value/1e9:.2f}B"
+    elif value >= 1e6:
+        return f"${value/1e6:.2f}M"
+    else:
+        return f"${value:,.0f}"
 
 # ------------------------------------------------------------
 # UI Pages
@@ -260,7 +286,7 @@ def show_landing():
 
     st.markdown("---")
     st.markdown("""
-    <div style="text-align:center; color:#6b7a99; font-size:0.9rem;">
+    <div style="text-align:center; color:#000000; font-size:0.9rem;">
         Powered by Bayesian Monte Carlo, Regime Detection, Kelly Criterion, and Factor Models.<br>
         Data from Yahoo Finance • Not financial advice<br>
         Designed by <b>Mamoor Hayat</b> • © 2024
@@ -288,18 +314,26 @@ def show_analysis():
         st.error("Could not fetch data. Please check symbol.")
         return
 
-    # Get current price from latest period (5-year if available, else fallback)
-    main_df = data.get('5 Years', data.get('4 Years', data.get('3 Years', data.get('2 Years', data.get('1 Year')))))
+    # Use the longest available period for main analysis
+    main_df = None
+    for period in ['5 Years', '4 Years', '3 Years', '2 Years', '1 Year']:
+        if period in data and not data[period].empty:
+            main_df = data[period]
+            break
     if main_df is None:
         st.error("No data available.")
         return
-    current_price = main_df['Close'].iloc[-1]
 
-    # Company info
+    current_price = main_df['Close'].iloc[-1]
     company_name = info.get('longName', symbol)
     sector = info.get('sector', 'N/A')
     industry = info.get('industry', 'N/A')
     market_cap = info.get('marketCap', None)
+
+    # For crypto, sector may be missing; we can set a default
+    if sector == 'N/A' and symbol.endswith('-USD'):
+        sector = "Cryptocurrency"
+        industry = "Digital Asset"
 
     # ------------------------------------------------------------
     # Summary Cards
@@ -329,7 +363,7 @@ def show_analysis():
         </div>
         """, unsafe_allow_html=True)
     with col4:
-        cap_display = format_currency(market_cap) if market_cap else "N/A"
+        cap_display = format_market_cap(market_cap) if market_cap else "N/A"
         st.markdown(f"""
         <div class="card">
             <h4>📊 Market Cap</h4>
@@ -338,26 +372,31 @@ def show_analysis():
         """, unsafe_allow_html=True)
 
     # ------------------------------------------------------------
-    # Advanced Metrics – using 5-year data
+    # Advanced Metrics (5-year data if available, else fallback)
     # ------------------------------------------------------------
-    five_year = data.get('5 Years')
-    if five_year is not None and len(five_year) > 50:
-        prices = five_year['Close']
+    if len(main_df) > 50:
+        prices = main_df['Close']
         returns = prices.pct_change().dropna()
 
         # Monte Carlo
-        mc = monte_carlo_bayesian(returns, current_price, days=252, n_sim=10000)
+        mc = monte_carlo_simulation(returns, current_price, days=252, n_sim=10000)
 
         # Regime
         regime = regime_classification(prices)
 
         # Beta vs SPY
-        spy = yf.Ticker("SPY").history(start=prices.index[0], end=prices.index[-1])
-        spy_returns = spy['Close'].pct_change().dropna()
-        beta = compute_beta(returns, spy_returns)
+        try:
+            spy = yf.Ticker("SPY").history(start=prices.index[0], end=prices.index[-1])
+            if not spy.empty:
+                spy_returns = spy['Close'].pct_change().dropna()
+                beta = compute_beta(returns, spy_returns)
+            else:
+                beta = np.nan
+        except:
+            beta = np.nan
 
         # Risk metrics
-        risk = compute_risk_metrics(returns, prices)
+        risk = compute_risk_metrics(returns)
 
         # Backtest strategy
         bt = backtest_strategy(prices)
@@ -397,9 +436,9 @@ def show_analysis():
             rec_detail = "Downside risk outweighs upside potential."
 
         st.markdown(f"""
-        <div class="{rec_class}" style="padding:1.2rem; border-radius:16px; margin:1rem 0;">
-            <h3 style="margin:0;">{rec_text}</h3>
-            <p style="margin:0.5rem 0 0 0;">{rec_detail}</p>
+        <div class="{rec_class}" style="padding:1.2rem; border-radius:16px; margin:1rem 0; color:#000000;">
+            <h3 style="margin:0; color:#000000;">{rec_text}</h3>
+            <p style="margin:0.5rem 0 0 0; color:#000000;">{rec_detail}</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -500,8 +539,7 @@ def show_analysis():
             with tab:
                 if not df.empty:
                     prices_t = df['Close']
-                    # Histogram
-                    n_bins = min(30, len(prices_t)//10+1)
+                    n_bins = min(30, max(5, len(prices_t)//10+1))
                     fig_hist = go.Figure()
                     fig_hist.add_trace(go.Histogram(
                         x=prices_t,
@@ -540,10 +578,9 @@ def show_analysis():
         # Advanced Chart (Price, Bollinger, Volume, RSI, MACD)
         # ------------------------------------------------------------
         st.markdown("## 🚀 Comprehensive Technical Chart")
-        if len(five_year) > 50:
-            # Prepare indicators
-            close = five_year['Close']
-            volume = five_year['Volume']
+        if len(main_df) > 50:
+            close = main_df['Close']
+            volume = main_df['Volume']
             sma20 = close.rolling(20).mean()
             sma50 = close.rolling(50).mean()
             sma200 = close.rolling(200).mean()
@@ -593,16 +630,17 @@ def show_analysis():
         st.markdown("### 📥 Export Data")
         if st.button("Download Full Analysis (CSV)"):
             # Prepare a combined dataframe
-            df_export = five_year[['Close', 'Volume']].copy()
+            df_export = main_df[['Close', 'Volume']].copy()
             df_export['Returns'] = returns
-            # Add indicators
-            df_export['SMA20'] = sma20
-            df_export['SMA50'] = sma50
-            df_export['SMA200'] = sma200
-            df_export['RSI'] = rsi
-            df_export['MACD'] = macd
-            df_export['Signal'] = signal
-            df_export['Hist'] = hist
+            # Add indicators if available
+            if len(main_df) > 50:
+                df_export['SMA20'] = sma20
+                df_export['SMA50'] = sma50
+                df_export['SMA200'] = sma200
+                df_export['RSI'] = rsi
+                df_export['MACD'] = macd
+                df_export['Signal'] = signal
+                df_export['Hist'] = hist
             csv = df_export.to_csv()
             st.download_button(
                 label="Download CSV",
@@ -638,34 +676,10 @@ def show_analysis():
     st.markdown("---")
     st.markdown("""
     <div class="footer">
-        <p>📊 FinTech Analytics Pro – Nobel‑Grade Edition | Designed with ❤️ by <b>Mamoor Hayat</b></p>
-        <p style="font-size:0.8rem; color:#6b7a99;">© 2024 All Rights Reserved | Data from Yahoo Finance | Not financial advice</p>
+        <p>📊 FinTech Analytics Pro – Final Edition | Designed with ❤️ by <b>Mamoor Hayat</b></p>
+        <p style="font-size:0.8rem; color:#000000;">© 2024 All Rights Reserved | Data from Yahoo Finance | Not financial advice</p>
     </div>
     """, unsafe_allow_html=True)
-
-# ------------------------------------------------------------
-# Utility functions (formatting)
-# ------------------------------------------------------------
-def format_currency(value):
-    if pd.isna(value) or value is None:
-        return "N/A"
-    return f"${value:,.2f}"
-
-def calculate_rsi(data, window=14):
-    delta = data.diff()
-    gain = (delta.where(delta > 0, 0)).rolling(window=window).mean()
-    loss = (-delta.where(delta < 0, 0)).rolling(window=window).mean()
-    rs = gain / loss
-    rsi = 100 - (100 / (1 + rs))
-    return rsi
-
-def calculate_macd(data, fast=12, slow=26, signal=9):
-    exp1 = data.ewm(span=fast, adjust=False).mean()
-    exp2 = data.ewm(span=slow, adjust=False).mean()
-    macd = exp1 - exp2
-    signal_line = macd.ewm(span=signal, adjust=False).mean()
-    histogram = macd - signal_line
-    return macd, signal_line, histogram
 
 # ------------------------------------------------------------
 # Main Router
