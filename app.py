@@ -1,5 +1,5 @@
 """
-FinTech Analytics Pro – Ultimate Edition (10‑Year Monthly Probabilities)
+FinTech Analytics Pro – Future‑Centric Edition
 Designed by Mamoor Hayat
 Copyright © 2024 All Rights Reserved
 """
@@ -18,8 +18,8 @@ warnings.filterwarnings('ignore')
 # Page Configuration
 # ------------------------------------------------------------
 st.set_page_config(
-    page_title="FinTech Analytics Pro | Ultimate",
-    page_icon="📊",
+    page_title="FinTech Analytics Pro | Future‑Centric",
+    page_icon="🚀",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -73,6 +73,8 @@ st.markdown("""
 # ------------------------------------------------------------
 if 'symbol' not in st.session_state:
     st.session_state.symbol = None
+if 'chart_mode' not in st.session_state:
+    st.session_state.chart_mode = 'Classic'  # or 'Institutional'
 
 # ------------------------------------------------------------
 # Helper Functions
@@ -94,37 +96,67 @@ def fetch_data(symbol, periods_days):
     except:
         return None, None
 
-def monte_carlo_10y(returns, current_price, n_sim=10000):
+def monte_carlo_with_regime(returns, current_price, n_sim=10000, regime='normal'):
     """
-    Simulate 10 years (2520 trading days) of daily returns.
-    Returns monthly probabilities (every 21 days) and key stats.
+    Monte Carlo simulation with regime‑aware volatility.
+    Regimes: 'normal' (historical sigma), 'high' (2x sigma), 'low' (0.5x sigma).
     """
     mu = returns.mean()
     sigma = returns.std()
-    sigma_shrunk = sigma * 0.9 + 0.1 * returns.median()
+    # Adjust sigma based on regime
+    if regime == 'high':
+        sigma_adj = sigma * 2.0
+    elif regime == 'low':
+        sigma_adj = sigma * 0.5
+    else:
+        sigma_adj = sigma * 0.9  # slight shrinkage
+
     dt = 1/252
-    total_days = 2520  # 10 years
-    log_returns = np.random.normal(mu - 0.5 * sigma_shrunk**2, sigma_shrunk,
+    total_days = 252  # 1 year
+    log_returns = np.random.normal(mu - 0.5 * sigma_adj**2, sigma_adj,
                                    size=(total_days, n_sim))
     cum_log = np.cumsum(log_returns, axis=0)
     paths = current_price * np.exp(cum_log)
-    final_prices = paths[-1, :]
-    # Monthly indices (every 21 days, up to 120 months)
+    final = paths[-1, :]
+    prob_profit = np.mean(final > current_price)
+    expected_return = np.mean(final / current_price - 1) * 100
+    var_95 = current_price - np.percentile(final, 5)
+    cvar_95 = current_price - np.mean(final[final <= np.percentile(final, 5)])
+    return {
+        'prob_profit': prob_profit,
+        'expected_return': expected_return,
+        'var_95': var_95,
+        'cvar_95': cvar_95,
+        'paths': paths
+    }
+
+def monte_carlo_10y(returns, current_price, n_sim=10000):
+    """Simulate 10 years and return monthly probabilities and key stats."""
+    mu = returns.mean()
+    sigma = returns.std() * 0.9  # shrinkage
+    dt = 1/252
+    total_days = 2520
+    log_returns = np.random.normal(mu - 0.5 * sigma**2, sigma,
+                                   size=(total_days, n_sim))
+    cum_log = np.cumsum(log_returns, axis=0)
+    paths = current_price * np.exp(cum_log)
+    final = paths[-1, :]
+    # Monthly probabilities (every 21 days)
     month_indices = np.arange(21, total_days+1, 21)
     monthly_probs = []
     for idx in month_indices:
         prices_at_month = paths[idx-1, :]
         prob = np.mean(prices_at_month > current_price)
         monthly_probs.append(prob)
-    # Also compute probabilities at specific horizons
-    horizon_days = [252, 756, 1260, 2520]  # 1,3,5,10 years
+    # Horizon probabilities
+    horizon_days = [252, 756, 1260, 2520]
     horizon_probs = {}
     for h in horizon_days:
         if h <= total_days:
             prices_at_h = paths[h-1, :]
             horizon_probs[f"{h//252}Y"] = np.mean(prices_at_h > current_price)
-    expected_return = np.mean(final_prices / current_price - 1) * 100
-    var_95 = current_price - np.percentile(final_prices, 5)
+    expected_return = np.mean(final / current_price - 1) * 100
+    var_95 = current_price - np.percentile(final, 5)
     return {
         'paths': paths,
         'monthly_probs': monthly_probs,
@@ -261,15 +293,15 @@ def format_market_cap(value):
 def show_landing():
     st.markdown("""
     <div class="landing-header">
-        <h1>📊 FinTech Analytics Pro</h1>
-        <p>10‑Year Probabilistic Forecasting & Advanced Risk Analytics</p>
+        <h1>🚀 FinTech Analytics Pro</h1>
+        <p>Future‑Centric Quant Research • Probabilistic Forecasts • Institutional Indicators</p>
     </div>
     """, unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         symbol_input = st.text_input("Enter symbol (e.g., AAPL, BTC-USD)", value="AAPL", key="landing_symbol").upper()
-        if st.button("🚀 Analyze", key="landing_button"):
+        if st.button("🔮 Analyze Future", key="landing_button"):
             st.session_state.symbol = symbol_input
             st.rerun()
 
@@ -295,7 +327,7 @@ def show_landing():
     st.markdown("---")
     st.markdown("""
     <div style="text-align:center; color:#000000; font-size:0.9rem;">
-        Powered by Monte Carlo Simulation, Bayesian Shrinkage, and Factor Models.<br>
+        Powered by Monte Carlo Simulation, Regime‑Aware Forecasting, and Institutional Money Flow Indicators.<br>
         Data from Yahoo Finance • Not financial advice<br>
         Designed by <b>Mamoor Hayat</b> • © 2024
     </div>
@@ -307,7 +339,7 @@ def show_analysis():
         st.session_state.symbol = None
         st.rerun()
 
-    st.markdown(f"## 📈 Advanced Analysis for **{symbol}**")
+    st.markdown(f"## 🔮 Future‑Centric Analysis for **{symbol}**")
 
     # Fetch data
     periods = {
@@ -338,7 +370,6 @@ def show_analysis():
     industry = info.get('industry', 'N/A')
     market_cap = info.get('marketCap', None)
 
-    # Crypto fallback
     if sector == 'N/A' and symbol.endswith('-USD'):
         sector = "Cryptocurrency"
         industry = "Digital Asset"
@@ -380,39 +411,37 @@ def show_analysis():
         """, unsafe_allow_html=True)
 
     # ------------------------------------------------------------
-    # Main Analysis (requires at least 50 days)
+    # Future‑Centric Forecast (Monte Carlo + Scenario)
     # ------------------------------------------------------------
     if len(main_df) < 50:
-        st.warning("Insufficient data (need at least 50 days). Please try another symbol.")
+        st.warning("Insufficient data (need at least 50 days).")
         return
 
     prices = main_df['Close']
     returns = prices.pct_change().dropna()
 
-    # ------------------------------------------------------------
-    # 1. Probabilistic Forecast (10‑year monthly)
-    # ------------------------------------------------------------
     st.markdown("---")
-    st.markdown("## 🎯 10‑Year Probabilistic Forecast")
+    st.markdown("## 🔮 10‑Year Probabilistic Forecast")
 
-    mc = monte_carlo_10y(returns, current_price, n_sim=10000)
+    # Monte Carlo for 10 years
+    mc_10y = monte_carlo_10y(returns, current_price, n_sim=10000)
 
-    # Show key horizon probabilities
+    # Show horizon probabilities
     col_h1, col_h2, col_h3, col_h4 = st.columns(4)
-    col_h1.metric("1‑Year Profit Prob", f"{mc['horizon_probs'].get('1Y', 0)*100:.1f}%")
-    col_h2.metric("3‑Year Profit Prob", f"{mc['horizon_probs'].get('3Y', 0)*100:.1f}%")
-    col_h3.metric("5‑Year Profit Prob", f"{mc['horizon_probs'].get('5Y', 0)*100:.1f}%")
-    col_h4.metric("10‑Year Profit Prob", f"{mc['horizon_probs'].get('10Y', 0)*100:.1f}%")
+    col_h1.metric("1‑Year Profit Prob", f"{mc_10y['horizon_probs'].get('1Y', 0)*100:.1f}%")
+    col_h2.metric("3‑Year Profit Prob", f"{mc_10y['horizon_probs'].get('3Y', 0)*100:.1f}%")
+    col_h3.metric("5‑Year Profit Prob", f"{mc_10y['horizon_probs'].get('5Y', 0)*100:.1f}%")
+    col_h4.metric("10‑Year Profit Prob", f"{mc_10y['horizon_probs'].get('10Y', 0)*100:.1f}%")
 
-    st.metric("Expected Return (10Y)", f"{mc['expected_return']:.2f}%")
-    st.metric("VaR (95%) 10Y", f"{format_currency(mc['var_95'])}")
+    st.metric("Expected Return (10Y)", f"{mc_10y['expected_return']:.2f}%")
+    st.metric("VaR (95%) 10Y", f"{format_currency(mc_10y['var_95'])}")
 
-    # Monthly probabilities chart
-    months = np.arange(1, len(mc['monthly_probs'])+1)
+    # Monthly probability chart
+    months = np.arange(1, len(mc_10y['monthly_probs'])+1)
     fig_prob = go.Figure()
     fig_prob.add_trace(go.Scatter(
         x=months,
-        y=np.array(mc['monthly_probs'])*100,
+        y=np.array(mc_10y['monthly_probs'])*100,
         mode='lines+markers',
         name='Profit Probability',
         line=dict(color='#2a4b7c', width=2),
@@ -430,7 +459,7 @@ def show_analysis():
     st.plotly_chart(fig_prob, use_container_width=True)
 
     # Recommendation based on 1‑year probability
-    prob_1y = mc['horizon_probs'].get('1Y', 0)
+    prob_1y = mc_10y['horizon_probs'].get('1Y', 0)
     if prob_1y > 0.60:
         rec_class = "prob-high"
         rec_text = "✅ BUY – High probability of positive return (1Y)"
@@ -452,97 +481,49 @@ def show_analysis():
     """, unsafe_allow_html=True)
 
     # ------------------------------------------------------------
-    # 2. Risk & Performance Dashboard
+    # Scenario Analysis (Interactive)
     # ------------------------------------------------------------
-    st.markdown("---")
-    st.markdown("## 📊 Risk & Performance Dashboard")
+    st.markdown("### 🧪 What‑If Scenario Analysis")
 
-    # Beta vs SPY
-    try:
-        spy = yf.Ticker("SPY").history(start=prices.index[0], end=prices.index[-1])
-        spy_returns = spy['Close'].pct_change().dropna()
-        beta = compute_beta(returns, spy_returns)
-    except:
-        beta = np.nan
+    col_s1, col_s2 = st.columns(2)
+    with col_s1:
+        expected_return_adj = st.slider("Adjust Expected Return (annual %)", -20.0, 20.0, 0.0, step=0.5, help="Override the historical average return assumption.")
+    with col_s2:
+        volatility_adj = st.selectbox("Volatility Regime", ["Normal", "High (2x)", "Low (0.5x)"], help="Simulate different market volatility environments.")
 
-    risk = compute_risk_metrics(returns)
-
-    col_r1, col_r2, col_r3, col_r4 = st.columns(4)
-    col_r1.metric("Volatility (Ann.)", f"{returns.std()*np.sqrt(252)*100:.2f}%")
-    col_r2.metric("Max Drawdown", f"{risk.get('max_drawdown', np.nan):.2f}%")
-    col_r3.metric("Sortino Ratio", f"{risk.get('sortino', np.nan):.2f}")
-    col_r4.metric("Calmar Ratio", f"{risk.get('calmar', np.nan):.2f}")
-
-    col_r5, col_r6, col_r7, col_r8 = st.columns(4)
-    col_r5.metric("VaR (95%)", f"{risk.get('var_95', np.nan):.2f}%")
-    col_r6.metric("VaR (99%)", f"{risk.get('var_99', np.nan):.2f}%")
-    col_r7.metric("CVaR (95%)", f"{risk.get('cvar_95', np.nan):.2f}%")
-    col_r8.metric("Beta (vs SPY)", f"{beta:.2f}" if not np.isnan(beta) else "N/A")
-
-    # Regime & Kelly
-    regime = regime_classification(prices)
-    bt = backtest_strategy(prices)
-    if bt is not None:
-        kelly_f = kelly_criterion(bt['win_rate'], bt['avg_win'], bt['avg_loss'])
+    # Run Monte Carlo with user adjustments
+    if expected_return_adj != 0 or volatility_adj != 'Normal':
+        regime_map = {'Normal': 'normal', 'High (2x)': 'high', 'Low (0.5x)': 'low'}
+        mc_adj = monte_carlo_with_regime(returns, current_price, n_sim=10000, regime=regime_map[volatility_adj])
+        # Adjust expected return by shifting drift
+        # (We'll just display the probability and return; for simplicity we re-run with adjusted mu)
+        # We'll recompute by modifying the returns series mean artificially:
+        returns_adj = returns + expected_return_adj/100/252  # approximate daily adjustment
+        mc_adj = monte_carlo_with_regime(returns_adj, current_price, n_sim=10000, regime=regime_map[volatility_adj])
+        st.write(f"**Scenario Results:**")
+        st.metric("Probability of Profit (1Y)", f"{mc_adj['prob_profit']*100:.1f}%")
+        st.metric("Expected Return (1Y)", f"{mc_adj['expected_return']:.2f}%")
+        st.metric("VaR (95%) 1Y", f"{format_currency(mc_adj['var_95'])}")
+        st.caption("These results reflect your custom assumptions. Compare with the baseline forecast above.")
     else:
-        kelly_f = np.nan
-
-    col_k1, col_k2, col_k3 = st.columns(3)
-    col_k1.metric("Current Regime", regime)
-    col_k2.metric("Kelly Fraction (optimal bet)", f"{kelly_f*100:.1f}%" if not np.isnan(kelly_f) else "N/A")
-    col_k3.metric("Strategy Win Rate (MA crossover)", f"{bt['win_rate']*100:.1f}%" if bt is not None else "N/A")
+        st.info("Adjust the sliders above to see how different assumptions affect the forecast.")
 
     # ------------------------------------------------------------
-    # 3. Historical Price Distribution (Tabs)
+    # Institutional Indicators Toggle
     # ------------------------------------------------------------
     st.markdown("---")
-    st.markdown("## 📊 Historical Price Distribution")
-    tabs = st.tabs(["1 Year", "2 Years", "3 Years", "4 Years", "5 Years"])
-    for tab, (name, df) in zip(tabs, data.items()):
-        with tab:
-            if not df.empty:
-                prices_t = df['Close']
-                n_bins = min(30, max(5, len(prices_t)//10+1))
-                fig_hist = go.Figure()
-                fig_hist.add_trace(go.Histogram(
-                    x=prices_t,
-                    nbinsx=n_bins,
-                    marker_color='#2a4b7c',
-                    opacity=0.7,
-                    name='Distribution'
-                ))
-                fig_hist.add_vline(x=current_price, line_dash='dash', line_color='#b33c3c',
-                                   annotation_text="Current", annotation_position="top")
-                fig_hist.update_layout(
-                    title=f"{name} – Price Distribution",
-                    xaxis_title="Price ($)",
-                    yaxis_title="Frequency",
-                    template="plotly_white",
-                    height=300,
-                    bargap=0.05
-                )
-                st.plotly_chart(fig_hist, use_container_width=True)
+    st.markdown("## 📊 Advanced Technical Analysis")
 
-                stats_df = pd.DataFrame({
-                    "Metric": ["Mean", "Median", "Min", "Max", "Std Dev", "Skewness", "Kurtosis"],
-                    "Value": [
-                        format_currency(prices_t.mean()),
-                        format_currency(prices_t.median()),
-                        format_currency(prices_t.min()),
-                        format_currency(prices_t.max()),
-                        format_currency(prices_t.std()),
-                        f"{prices_t.skew():.2f}",
-                        f"{prices_t.kurtosis():.2f}"
-                    ]
-                })
-                st.dataframe(stats_df, use_container_width=True, hide_index=True)
+    chart_mode = st.radio(
+        "Select Chart Mode",
+        ["Classic (Bollinger + RSI + MACD)", "Institutional (Keltner + MFI + A/D + Chaikin)"],
+        index=0 if st.session_state.chart_mode == 'Classic' else 1,
+        horizontal=True
+    )
+    st.session_state.chart_mode = 'Classic' if chart_mode == "Classic (Bollinger + RSI + MACD)" else 'Institutional'
 
-    # ------------------------------------------------------------
-    # 4. Comprehensive Technical Chart
-    # ------------------------------------------------------------
-    st.markdown("---")
-    st.markdown("## 🚀 Comprehensive Technical Chart")
-    if len(main_df) > 50:
+    if st.session_state.chart_mode == 'Classic':
+        # --- Classic Chart ---
         close = main_df['Close']
         volume = main_df['Volume']
         sma20 = close.rolling(20).mean()
@@ -587,11 +568,106 @@ def show_analysis():
         fig_tech.update_yaxes(title_text="MACD", row=4, col=1)
         st.plotly_chart(fig_tech, use_container_width=True)
 
+    else:
+        # --- Institutional Chart ---
+        close = main_df['Close']
+        high = main_df['High']
+        low = main_df['Low']
+        volume = main_df['Volume']
+
+        # Keltner Channels
+        ema20 = close.ewm(span=20, adjust=False).mean()
+        atr10 = (high - low).rolling(10).mean()
+        upper_k = ema20 + 2 * atr10
+        lower_k = ema20 - 2 * atr10
+
+        # Money Flow Index (14-period)
+        typical = (high + low + close) / 3
+        money_flow = typical * volume
+        mf_positive = money_flow.where(typical > typical.shift(1), 0).rolling(14).sum()
+        mf_negative = money_flow.where(typical < typical.shift(1), 0).rolling(14).sum()
+        money_ratio = mf_positive / mf_negative
+        mfi = 100 - (100 / (1 + money_ratio))
+
+        # Accumulation/Distribution Line
+        mf_multiplier = ((close - low) - (high - close)) / (high - low)
+        mf_volume = mf_multiplier * volume
+        ad_line = mf_volume.cumsum()
+
+        # Chaikin Oscillator
+        chaikin = ad_line.ewm(span=3, adjust=False).mean() - ad_line.ewm(span=10, adjust=False).mean()
+
+        fig_inst = make_subplots(
+            rows=3, cols=1,
+            shared_xaxes=True,
+            vertical_spacing=0.08,
+            row_heights=[0.4, 0.3, 0.3],
+            subplot_titles=("Price & Keltner Channels", "Money Flow Index (MFI)", "Accum/Dist & Chaikin Oscillator")
+        )
+        # Row 1: Price + Keltner
+        fig_inst.add_trace(go.Scatter(x=close.index, y=close, name='Price', line=dict(color='#0b1a3a', width=2)), row=1, col=1)
+        fig_inst.add_trace(go.Scatter(x=close.index, y=upper_k, name='Keltner Upper', line=dict(color='#2a7c4b', dash='dash')), row=1, col=1)
+        fig_inst.add_trace(go.Scatter(x=close.index, y=ema20, name='EMA 20', line=dict(color='#d98c2b')), row=1, col=1)
+        fig_inst.add_trace(go.Scatter(x=close.index, y=lower_k, name='Keltner Lower', line=dict(color='#b33c3c', dash='dash')), row=1, col=1)
+        # Row 2: MFI
+        fig_inst.add_trace(go.Scatter(x=close.index, y=mfi, name='MFI', line=dict(color='#7c3a9e')), row=2, col=1)
+        fig_inst.add_hline(y=80, line_dash="dash", line_color="#b33c3c", row=2, col=1)
+        fig_inst.add_hline(y=20, line_dash="dash", line_color="#2a7c4b", row=2, col=1)
+        # Row 3: A/D + Chaikin
+        fig_inst.add_trace(go.Scatter(x=close.index, y=ad_line, name='A/D Line', line=dict(color='#2a4b7c')), row=3, col=1)
+        fig_inst.add_trace(go.Scatter(x=close.index, y=chaikin, name='Chaikin Osc', line=dict(color='#e65100')), row=3, col=1)
+        fig_inst.add_hline(y=0, line_dash="dash", line_color="#b33c3c", row=3, col=1)
+
+        fig_inst.update_layout(height=800, template="plotly_white", showlegend=True, hovermode="x unified")
+        fig_inst.update_xaxes(title_text="Date", row=3, col=1)
+        fig_inst.update_yaxes(title_text="Price ($)", row=1, col=1)
+        fig_inst.update_yaxes(title_text="MFI", row=2, col=1, range=[0, 100])
+        fig_inst.update_yaxes(title_text="A/D & Chaikin", row=3, col=1)
+        st.plotly_chart(fig_inst, use_container_width=True)
+
     # ------------------------------------------------------------
-    # 5. Strategy Backtest (Equity Curve)
+    # Risk Dashboard & Regime
     # ------------------------------------------------------------
+    st.markdown("---")
+    st.markdown("## 📊 Risk & Performance Dashboard")
+
+    try:
+        spy = yf.Ticker("SPY").history(start=prices.index[0], end=prices.index[-1])
+        spy_returns = spy['Close'].pct_change().dropna()
+        beta = compute_beta(returns, spy_returns)
+    except:
+        beta = np.nan
+
+    risk = compute_risk_metrics(returns)
+    regime = regime_classification(prices)
+    bt = backtest_strategy(prices)
+    if bt is not None:
+        kelly_f = kelly_criterion(bt['win_rate'], bt['avg_win'], bt['avg_loss'])
+    else:
+        kelly_f = np.nan
+
+    col_r1, col_r2, col_r3, col_r4 = st.columns(4)
+    col_r1.metric("Volatility (Ann.)", f"{returns.std()*np.sqrt(252)*100:.2f}%")
+    col_r2.metric("Max Drawdown", f"{risk.get('max_drawdown', np.nan):.2f}%")
+    col_r3.metric("Sortino Ratio", f"{risk.get('sortino', np.nan):.2f}")
+    col_r4.metric("Calmar Ratio", f"{risk.get('calmar', np.nan):.2f}")
+
+    col_r5, col_r6, col_r7, col_r8 = st.columns(4)
+    col_r5.metric("VaR (95%)", f"{risk.get('var_95', np.nan):.2f}%")
+    col_r6.metric("VaR (99%)", f"{risk.get('var_99', np.nan):.2f}%")
+    col_r7.metric("CVaR (95%)", f"{risk.get('cvar_95', np.nan):.2f}%")
+    col_r8.metric("Beta (vs SPY)", f"{beta:.2f}" if not np.isnan(beta) else "N/A")
+
+    col_k1, col_k2, col_k3 = st.columns(3)
+    col_k1.metric("Current Regime", regime)
+    col_k2.metric("Kelly Fraction (optimal bet)", f"{kelly_f*100:.1f}%" if not np.isnan(kelly_f) else "N/A")
+    if bt is not None:
+        col_k3.metric("Strategy Win Rate", f"{bt['win_rate']*100:.1f}%")
+    else:
+        col_k3.metric("Strategy Win Rate", "N/A")
+
+    # Backtest equity curve
     if bt is not None and 'equity_curve' in bt:
-        st.markdown("---")
         st.markdown("### 📈 Strategy Backtest (50/200 MA Crossover)")
         fig_eq = go.Figure()
         fig_eq.add_trace(go.Scatter(
@@ -616,7 +692,52 @@ def show_analysis():
         col_s3.metric("Max Drawdown (Strategy)", f"{bt['max_drawdown']:.2f}%")
 
     # ------------------------------------------------------------
-    # 6. Export Data
+    # Historical Distribution (Tabs)
+    # ------------------------------------------------------------
+    st.markdown("---")
+    st.markdown("## 📊 Historical Price Distribution")
+    tabs = st.tabs(["1 Year", "2 Years", "3 Years", "4 Years", "5 Years"])
+    for tab, (name, df) in zip(tabs, data.items()):
+        with tab:
+            if not df.empty:
+                prices_t = df['Close']
+                n_bins = min(30, max(5, len(prices_t)//10+1))
+                fig_hist = go.Figure()
+                fig_hist.add_trace(go.Histogram(
+                    x=prices_t,
+                    nbinsx=n_bins,
+                    marker_color='#2a4b7c',
+                    opacity=0.7,
+                    name='Distribution'
+                ))
+                fig_hist.add_vline(x=current_price, line_dash='dash', line_color='#b33c3c',
+                                   annotation_text="Current", annotation_position="top")
+                fig_hist.update_layout(
+                    title=f"{name} – Price Distribution",
+                    xaxis_title="Price ($)",
+                    yaxis_title="Frequency",
+                    template="plotly_white",
+                    height=300,
+                    bargap=0.05
+                )
+                st.plotly_chart(fig_hist, use_container_width=True)
+
+                stats_df = pd.DataFrame({
+                    "Metric": ["Mean", "Median", "Min", "Max", "Std Dev", "Skewness", "Kurtosis"],
+                    "Value": [
+                        format_currency(prices_t.mean()),
+                        format_currency(prices_t.median()),
+                        format_currency(prices_t.min()),
+                        format_currency(prices_t.max()),
+                        format_currency(prices_t.std()),
+                        f"{prices_t.skew():.2f}",
+                        f"{prices_t.kurtosis():.2f}"
+                    ]
+                })
+                st.dataframe(stats_df, use_container_width=True, hide_index=True)
+
+    # ------------------------------------------------------------
+    # Download Data
     # ------------------------------------------------------------
     st.markdown("---")
     st.markdown("### 📥 Export Data")
@@ -640,30 +761,33 @@ def show_analysis():
         )
 
     # ------------------------------------------------------------
-    # 7. Educational Expander
+    # Educational Expander
     # ------------------------------------------------------------
     with st.expander("🧠 Methodology & Theoretical Foundation (Click to expand)"):
         st.markdown("""
         **1. Monte Carlo Simulation (10‑Year Monthly)**  
         We simulate 10,000 future daily price paths using Geometric Brownian Motion with drift and volatility estimated from historical returns. Bayesian shrinkage reduces overfitting. Monthly probabilities are computed by checking the percentage of paths that end each month above today's price.
 
-        **2. Risk Metrics**  
-        - **VaR (Value at Risk)**: maximum loss at a given confidence level (95%, 99%).  
-        - **CVaR (Expected Shortfall)**: average loss beyond VaR.  
-        - **Sortino Ratio**: return per unit of downside deviation (penalises only losses).  
-        - **Calmar Ratio**: return divided by maximum drawdown.
+        **2. Scenario Analysis**  
+        Users can adjust expected return and volatility assumptions to see how the forecast changes – a practical application of stress‑testing.
 
-        **3. Regime Detection**  
-        Based on rolling z‑scores: Bullish (>0.5σ above mean), Bearish (<-0.5σ), Range‑bound.
+        **3. Institutional Indicators**  
+        - **Keltner Channels** – volatility‑based envelope using ATR; smoother than Bollinger.  
+        - **Money Flow Index (MFI)** – volume‑weighted RSI; captures buying/selling conviction.  
+        - **Accumulation/Distribution Line** – cumulative money flow; reveals smart money activity.  
+        - **Chaikin Oscillator** – momentum of money flow; early warning of regime shifts.
 
-        **4. Kelly Criterion**  
-        Optimal fraction of capital to bet, derived from the win rate and average win/loss of a simple 50/200‑day MA crossover strategy.
+        **4. Risk Metrics**  
+        - **VaR / CVaR** – worst‑case losses at given confidence levels.  
+        - **Sortino Ratio** – return per unit of downside deviation.  
+        - **Calmar Ratio** – return divided by max drawdown.  
+        - **Beta** – market sensitivity vs. S&P 500.
 
-        **5. Factor Model**  
-        Beta computed via OLS regression against S&P 500 (SPY) returns.
+        **5. Regime Detection**  
+        Based on rolling z‑scores: Bullish (>0.5σ above mean), Bearish (<‑0.5σ), Range‑bound.
 
-        **6. Strategy Backtest**  
-        Backtest of a 50/200‑day moving average crossover to evaluate momentum performance historically.
+        **6. Kelly Criterion**  
+        Optimal fraction of capital to bet, derived from the win rate and average win/loss of a 50/200‑day MA crossover.
 
         All calculations are performed on‑the‑fly using only free data from Yahoo Finance.
         """)
@@ -672,7 +796,7 @@ def show_analysis():
     st.markdown("---")
     st.markdown("""
     <div class="footer">
-        <p>📊 FinTech Analytics Pro – Ultimate Edition | Designed with ❤️ by <b>Mamoor Hayat</b></p>
+        <p>🚀 FinTech Analytics Pro – Future‑Centric Edition | Designed with ❤️ by <b>Mamoor Hayat</b></p>
         <p style="font-size:0.8rem; color:#000000;">© 2024 All Rights Reserved | Data from Yahoo Finance | Not financial advice</p>
     </div>
     """, unsafe_allow_html=True)
