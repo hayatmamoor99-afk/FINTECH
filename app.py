@@ -1,5 +1,5 @@
 """
-FinTech Analytics Pro – Final Edition (AI Assistant)
+FinTech Analytics Pro – Final Edition
 Designed by Mamoor Hayat
 © 2024 All Rights Reserved
 """
@@ -13,15 +13,6 @@ from plotly.subplots import make_subplots
 from datetime import datetime, timedelta
 import warnings
 warnings.filterwarnings('ignore')
-
-# ------------------------------------------------------------
-# Try to import OpenAI – if not installed, fallback gracefully
-# ------------------------------------------------------------
-try:
-    import openai
-    OPENAI_AVAILABLE = True
-except ImportError:
-    OPENAI_AVAILABLE = False
 
 # ------------------------------------------------------------
 # Page Configuration
@@ -112,40 +103,6 @@ st.markdown("""
         background: #1b3a6a;
         transform: scale(1.02);
     }
-    .qa-box {
-        background: #f8faff;
-        padding: 1.5rem;
-        border-radius: 16px;
-        border: 1px solid #e0e7ff;
-        margin-top: 1.5rem;
-    }
-    .qa-box input {
-        width: 100%;
-        padding: 0.8rem;
-        border: 2px solid #c5cae9;
-        border-radius: 30px;
-        font-size: 1rem;
-        outline: none;
-    }
-    .qa-box input:focus { border-color: #2a4b7c; }
-    .qa-answer {
-        background: white;
-        padding: 1rem 1.5rem;
-        border-radius: 12px;
-        margin-top: 1rem;
-        border-left: 4px solid #d98c2b;
-        color: #000000;
-    }
-    .ai-badge {
-        background: #2a4b7c;
-        color: white;
-        padding: 0.2rem 0.8rem;
-        border-radius: 30px;
-        font-size: 0.7rem;
-        font-weight: 600;
-        display: inline-block;
-        margin-left: 0.5rem;
-    }
     @media (max-width: 768px) {
         .landing-header h1 { font-size: 2.4rem; }
     }
@@ -161,8 +118,6 @@ if 'chart_mode' not in st.session_state:
     st.session_state.chart_mode = 'Classic'
 if 'forecast_years' not in st.session_state:
     st.session_state.forecast_years = 10
-if 'qa_question' not in st.session_state:
-    st.session_state.qa_question = ""
 
 # ------------------------------------------------------------
 # Helper Functions
@@ -333,71 +288,6 @@ def format_market_cap(value):
         return f"${value/1e6:.2f}M"
     else:
         return f"${value:,.0f}"
-
-# ------------------------------------------------------------
-# Static Knowledge Base (fallback)
-# ------------------------------------------------------------
-qa_knowledge = {
-    "rsi": "RSI (Relative Strength Index) measures the speed and change of price movements. It ranges from 0 to 100. Values above 70 indicate overbought (price may fall), below 30 indicate oversold (price may rise). It's a momentum oscillator – helpful for spotting reversals.",
-    "macd": "MACD (Moving Average Convergence Divergence) shows the relationship between two exponential moving averages (typically 12‑day and 26‑day). When the MACD line crosses above its signal line, it's bullish; crossing below is bearish. The histogram shows the gap between the two – positive histogram = bullish momentum.",
-    "bollinger": "Bollinger Bands consist of a middle band (20‑day SMA) and two outer bands at ±2 standard deviations. When price touches the upper band, it may be overbought; touching the lower band, oversold. Narrow bands signal low volatility, often preceding a breakout.",
-    "keltner": "Keltner Channels are similar to Bollinger but use Average True Range (ATR) for bandwidth, making them smoother. They are better for trending markets. Price breaking above the upper channel suggests strong bullish momentum, below the lower channel suggests bearish.",
-    "mfi": "MFI (Money Flow Index) is a volume‑weighted RSI – it incorporates both price and volume. Overbought >80, oversold <20. It can show divergence (price making new high but MFI making lower high) – a warning of weakening buying pressure.",
-    "accumulation distribution": "The Accumulation/Distribution Line measures cumulative money flow. A rising line indicates accumulation (smart money buying), a falling line indicates distribution (selling). Divergence with price often signals reversals.",
-    "chaikin": "The Chaikin Oscillator measures the momentum of the Accumulation/Distribution Line. It's the difference between 3‑day and 10‑day EMAs of the A/D Line. Crossing above zero signals bullish money flow momentum, below zero bearish.",
-    "var": "Value at Risk (VaR) is a statistical measure of the maximum loss you can expect over a given period with a certain confidence level (e.g., 95%). A 95% VaR of -10% means there is a 5% chance of losing more than 10%.",
-    "cvar": "Conditional Value at Risk (CVaR), also known as Expected Shortfall, is the average loss beyond the VaR threshold. It gives a fuller picture of tail risk – the average loss in the worst 5% of cases.",
-    "sortino": "The Sortino Ratio measures return per unit of downside deviation – it only penalises negative volatility. A higher Sortino ratio indicates better risk‑adjusted returns, focusing on losses rather than total volatility.",
-    "calmar": "The Calmar Ratio is the annualised return divided by the maximum drawdown. It measures how well the asset recovers from losses – higher is better.",
-    "beta": "Beta measures an asset's sensitivity to market movements (relative to S&P 500). Beta > 1 means the asset is more volatile than the market; < 1 means less volatile. It helps understand systemic risk.",
-    "kelly": "The Kelly Criterion is a formula that suggests the optimal fraction of capital to bet on a trade, based on historical win rate and average win/loss ratio. It's a risk‑management tool – many traders use a fraction of Kelly (e.g., half‑Kelly) for safety.",
-    "monte carlo": "Monte Carlo simulation runs thousands of random 'what‑if' scenarios to estimate the range of future outcomes. It uses historical returns (average and volatility) to generate many possible price paths. The result is a probability, not a certainty.",
-    "regime": "Regime classification identifies the current market condition. Bullish means the price is significantly above its recent average; Bearish means below; Range‑bound means it's moving sideways. It helps contextualise trading decisions.",
-    "drawdown": "Maximum Drawdown is the largest peak‑to‑trough decline over the period. It's a key measure of downside risk – the worst loss you would have experienced if you bought at the peak and sold at the trough.",
-    "kurtosis": "Kurtosis measures the 'tailedness' of a return distribution. High kurtosis means there are more extreme price moves than a normal distribution would predict – i.e., fat tails. It tells you about the risk of big surprises.",
-    "skewness": "Skewness measures the asymmetry of a distribution. Positive skew means the right tail is longer – more large gains than large losses; negative skew means the left tail is longer – more large losses. In investing, negative skew is considered riskier.",
-    "mean": "Mean (average) is the sum of all values divided by the number of values. It is sensitive to outliers. In finance, the mean return tells you the typical daily return, but it can be distorted by extreme days.",
-    "median": "Median is the middle value when all observations are sorted. It is more robust to outliers than the mean. In price histograms, the median gives a better central tendency if the data is skewed.",
-    "standard deviation": "Standard deviation measures the dispersion of returns around the mean. Higher standard deviation = higher volatility = more risk. It's the most common measure of total risk.",
-    "histogram": "A histogram groups data into bins and shows frequency. In price analysis, it shows how many days the price was in each range. Tall bars reveal price levels with high trading activity (potential support/resistance)."
-}
-
-def get_qa_static(question):
-    question_lower = question.lower().strip()
-    for key, answer in qa_knowledge.items():
-        if key in question_lower:
-            return answer
-    return None
-
-def get_qa_answer(question):
-    # First try static knowledge base
-    static_ans = get_qa_static(question)
-    if static_ans:
-        return static_ans
-
-    # If OpenAI is available and API key is set, use AI
-    if OPENAI_AVAILABLE:
-        try:
-            # Check if API key is set in secrets or environment
-            api_key = st.secrets.get("OPENAI_API_KEY", None) or os.environ.get("OPENAI_API_KEY", None)
-            if api_key:
-                openai.api_key = api_key
-                response = openai.ChatCompletion.create(
-                    model="gpt-3.5-turbo",
-                    messages=[
-                        {"role": "system", "content": "You are a helpful financial education assistant. Answer the user's question about investing, indicators, risk metrics, or market analysis. Keep it concise but informative."},
-                        {"role": "user", "content": question}
-                    ],
-                    max_tokens=300,
-                    temperature=0.7
-                )
-                return response.choices[0].message.content.strip()
-            else:
-                return "🔑 OpenAI API key not found. Please set it in secrets to enable AI answers. Meanwhile, here are topics I can explain: RSI, MACD, Bollinger, Keltner, MFI, A/D, Chaikin, VaR, CVaR, Sortino, Calmar, Beta, Kelly, Monte Carlo, Regime, Drawdown, Kurtosis, Skewness, Mean, Median, Standard Deviation, Histogram."
-        except Exception as e:
-            return f"⚠️ AI error: {str(e)}. Falling back to static knowledge. Try asking about RSI, MACD, Bollinger, etc."
-    else:
-        return "🤖 OpenAI library not installed. Please install it (`pip install openai`) and set your API key to enable AI answers. Meanwhile, I can explain: RSI, MACD, Bollinger, Keltner, MFI, A/D, Chaikin, VaR, CVaR, Sortino, Calmar, Beta, Kelly, Monte Carlo, Regime, Drawdown, Kurtosis, Skewness, Mean, Median, Standard Deviation, Histogram."
 
 # ------------------------------------------------------------
 # UI Pages
@@ -1043,10 +933,10 @@ def show_analysis():
                     """, unsafe_allow_html=True)
 
     # ------------------------------------------------------------
-    # Comprehensive Guide with AI Assistant
+    # Comprehensive Guide (Educational Section)
     # ------------------------------------------------------------
     st.markdown("---")
-    with st.expander("📖 Complete Guide & Ask the AI Assistant (Click to Expand)", expanded=False):
+    with st.expander("📖 Complete Guide – Learn Every Technique (Click to Expand)", expanded=False):
         st.markdown("""
         <div class="guide-section">
         <h3>📘 Financial Education Center</h3>
@@ -1098,20 +988,6 @@ def show_analysis():
         <p><b>Disclaimer:</b> All analysis is based on historical data and is for educational purposes only. Past performance does not guarantee future results. Always conduct your own research and consult a financial advisor before making investment decisions.</p>
         </div>
         """, unsafe_allow_html=True)
-
-        # --- AI Assistant ---
-        st.markdown("### 💬 Ask the AI Assistant")
-        st.markdown("Type any question about finance, investing, or the analysis shown above. The assistant uses OpenAI GPT (if enabled) or a built‑in knowledge base.")
-        q_input = st.text_input("Your question:", key="qa_input", placeholder="e.g., What is Kurtosis? How does Beta work?")
-        if q_input:
-            with st.spinner("Thinking..."):
-                answer = get_qa_answer(q_input)
-            st.markdown(f"""
-            <div class="qa-answer">
-                <strong>🤖 Assistant:</strong> {answer}
-            </div>
-            """, unsafe_allow_html=True)
-            st.caption("💡 You can ask about: RSI, MACD, Bollinger, Keltner, MFI, A/D, Chaikin, VaR, CVaR, Sortino, Calmar, Beta, Kelly, Monte Carlo, Regime, Drawdown, Kurtosis, Skewness, Mean, Median, Standard Deviation, Histogram, and more.")
 
     # Footer
     st.markdown("---")
